@@ -24,8 +24,13 @@ def check_generation_model():
     if not api_key:
         raise RuntimeError("NVIDIA_API_KEY not found. Set it in a .env file.")
 
-    print("Calling meta/llama-3.1-8b-instruct ...")
-    llm = ChatNVIDIA(model="meta/llama-3.1-8b-instruct", api_key=api_key)
+    print("Calling nvidia/nemotron-3.5-lightning-30b-a3b ...")
+    llm = ChatNVIDIA(
+        model="nvidia/nemotron-3.5-lightning-30b-a3b",
+        api_key=api_key,
+        max_tokens=256,
+        chat_template_kwargs={"enable_thinking": False},
+    )
     response = llm.invoke(TEST_QUERY)
     print(f"Response: {response.content}")
 
