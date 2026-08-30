@@ -51,9 +51,7 @@ def retrieve(query: str, k: int = 4) -> list[tuple[Document, float]]:
     returns exactly ``k`` documents, however distant they are from the
     query. For an out-of-corpus question there may be no chunk that is
     genuinely relevant, but this function has no way to signal that and
-    will still return its ``k`` nearest neighbors. Gating generation on
-    retrieval quality is intentionally not implemented here — see
-    ``rag/generation.py`` and Checkpoint 3.
+    will still return its ``k`` nearest neighbors.
     """
     vectorstore = _get_vectorstore()
     return vectorstore.similarity_search_with_score(query, k=k)

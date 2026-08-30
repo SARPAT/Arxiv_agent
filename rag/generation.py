@@ -67,18 +67,16 @@ def generate(
     has no memory of past turns of its own — the caller (ultimately, a
     per-session request handler once one exists) owns that state.
 
-    INTENTIONAL BUG (Checkpoint 2 baseline — fixed in Checkpoint 3): this
-    function does not check whether ``context`` is actually relevant to
-    ``query`` before generating. Whatever context the caller assembled —
+    Known limitation: no retrieval confidence check before generation —
+    low-relevance context is still sent to the model. Addressed in a
+    follow-up.
+
+    This function does not check whether ``context`` is actually relevant
+    to ``query`` before generating. Whatever context the caller assembled —
     even the near-random nearest neighbors retrieval returns for a
     genuinely out-of-corpus question — gets sent straight to the model with
-    no gate in front of it. The system prompt's rules are the *only* thing
-    standing between an irrelevant context and a false attribution; there
-    is deliberately no code-level check here. This is measured as the
-    "false-accept rate" in the Checkpoint 2 eval and is what Checkpoint 3's
-    confidence gate is built to fix. Do not add a relevance check here to
-    "improve" this checkpoint's baseline numbers before that comparison is
-    captured.
+    no gate in front of it. The system prompt's rules are the only thing
+    standing between an irrelevant context and a false attribution.
     """
     client = _get_client()
     messages: list[dict[str, str]] = [{"role": "system", "content": SYSTEM_PROMPT}]
