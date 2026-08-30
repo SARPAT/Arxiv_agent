@@ -48,8 +48,9 @@ def docs2str(docs: list[Document], max_chars: int) -> str:
 def assemble_context(docs: list[Document], max_chars: int = MAX_CONTEXT_CHARS) -> str:
     """Turn retrieved documents into the context string sent to the model.
 
-    INTENTIONAL BUG (Checkpoint 2 baseline — fixed in Checkpoint 3):
-    ``LongContextReorder`` is applied *before* truncation, not after.
+    Known limitation: chunks are reordered before truncation, which can
+    drop the top-ranked chunk. Addressed in a follow-up.
+
     ``LongContextReorder`` assumes its input is sorted most-relevant-first
     and redistributes documents so the most relevant ones sit at the start
     *and end* of the list (mitigating LLMs' well-documented tendency to
@@ -60,16 +61,10 @@ def assemble_context(docs: list[Document], max_chars: int = MAX_CONTEXT_CHARS) -
     ``RETRIEVAL_K = 4``, the top-ranked document is exactly the one
     ``LongContextReorder`` moves to the end, so a large enough set of
     lower-ranked chunks in front of it can push it past ``max_chars`` and
-    cut it entirely — the reordering optimizes for the model's attention
-    pattern while quietly sabotaging the truncation step that runs right
-    after it. The fix is to select which documents fit in the budget
-    *before* reordering for presentation, not after. This is measured in
-    the Checkpoint 2 eval baseline and fixed in Checkpoint 3 — do not
-    reorder the two lines below to "fix" this before that comparison is
-    captured.
+    cut it entirely.
     """
-    reordered = _long_reorder.transform_documents(docs)  # reorder first...
-    return docs2str(reordered, max_chars=max_chars)  # ...then truncate (bug: can cut the best-ranked chunk)
+    reordered = _long_reorder.transform_documents(docs)
+    return docs2str(reordered, max_chars=max_chars)
 
 
 def answer_query(query: str, history: list[dict[str, str]] | None = None) -> str:
