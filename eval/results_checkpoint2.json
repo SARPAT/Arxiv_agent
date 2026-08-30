@@ -1,0 +1,1118 @@
+{
+  "retrieval": [
+    {
+      "id": "attention_1",
+      "question": "What is the main architecture proposed in \"Attention Is All You Need,\" and how does it differ from previous sequence transduction models?",
+      "expected_paper_keys": [
+        "attention"
+      ],
+      "retrieved_paper_keys": [
+        "attention",
+        "attention",
+        "attention",
+        "attention",
+        "attention",
+        "attention",
+        "attention",
+        "mistral7b"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "id": "attention_2",
+      "question": "What is scaled dot-product attention, and why is the scaling factor of 1/sqrt(d_k) used?",
+      "expected_paper_keys": [
+        "attention"
+      ],
+      "retrieved_paper_keys": [
+        "attention",
+        "attention",
+        "attention",
+        "attention",
+        "attention",
+        "attention",
+        "attention",
+        "attention"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "id": "attention_3",
+      "question": "What is multi-head attention, and why does the paper use multiple attention heads instead of a single attention function?",
+      "expected_paper_keys": [
+        "attention"
+      ],
+      "retrieved_paper_keys": [
+        "attention",
+        "attention",
+        "attention",
+        "attention",
+        "attention",
+        "attention",
+        "attention",
+        "attention"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "id": "attention_4",
+      "question": "How does the Transformer model handle positional information given that it contains no recurrence or convolution?",
+      "expected_paper_keys": [
+        "attention"
+      ],
+      "retrieved_paper_keys": [
+        "attention",
+        "attention",
+        "attention",
+        "attention",
+        "attention",
+        "attention",
+        "attention",
+        "attention"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "id": "attention_5",
+      "question": "What are the three types of attention layers used in the Transformer, and where is each applied?",
+      "expected_paper_keys": [
+        "attention"
+      ],
+      "retrieved_paper_keys": [
+        "attention",
+        "attention",
+        "attention",
+        "attention",
+        "attention",
+        "attention",
+        "attention",
+        "attention"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "id": "attention_6",
+      "question": "What BLEU scores are reported for the base and big Transformer models on the WMT 2014 English-to-German translation task?",
+      "expected_paper_keys": [
+        "attention"
+      ],
+      "retrieved_paper_keys": [
+        "attention",
+        "attention",
+        "attention",
+        "attention",
+        "attention",
+        "attention",
+        "attention",
+        "attention"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "id": "attention_7",
+      "question": "What is the computational complexity advantage of self-attention layers compared to recurrent layers, per the paper's analysis?",
+      "expected_paper_keys": [
+        "attention"
+      ],
+      "retrieved_paper_keys": [
+        "attention",
+        "attention",
+        "attention",
+        "attention",
+        "attention",
+        "attention",
+        "attention",
+        "attention"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "id": "bert_1",
+      "question": "What is BERT and how does it differ from previous language representation models like GPT and ELMo?",
+      "expected_paper_keys": [
+        "bert"
+      ],
+      "retrieved_paper_keys": [
+        "bert",
+        "bert",
+        "bert",
+        "bert",
+        "bert",
+        "bert",
+        "bert",
+        "bert"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "id": "bert_2",
+      "question": "What are the two unsupervised pre-training tasks used to train BERT?",
+      "expected_paper_keys": [
+        "bert"
+      ],
+      "retrieved_paper_keys": [
+        "bert",
+        "bert",
+        "bert",
+        "bert",
+        "bert",
+        "bert",
+        "bert",
+        "bert"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "id": "bert_3",
+      "question": "What is the Masked Language Model (MLM) objective, and what percentage of tokens are masked during pre-training?",
+      "expected_paper_keys": [
+        "bert"
+      ],
+      "retrieved_paper_keys": [
+        "bert",
+        "bert",
+        "bert",
+        "bert",
+        "bert",
+        "bert",
+        "bert",
+        "bert"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "id": "bert_4",
+      "question": "What is the Next Sentence Prediction (NSP) task, and what purpose does it serve?",
+      "expected_paper_keys": [
+        "bert"
+      ],
+      "retrieved_paper_keys": [
+        "bert",
+        "bert",
+        "bert",
+        "bert",
+        "bert",
+        "bert",
+        "bert",
+        "bert"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "id": "bert_5",
+      "question": "What are the two model sizes released for BERT (BERT-base and BERT-large), and what are their layer/hidden/head configurations?",
+      "expected_paper_keys": [
+        "bert"
+      ],
+      "retrieved_paper_keys": [
+        "bert",
+        "bert",
+        "bert",
+        "bert",
+        "bert",
+        "bert",
+        "bert",
+        "bert"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "id": "bert_6",
+      "question": "How does BERT achieve state-of-the-art results on the GLUE benchmark?",
+      "expected_paper_keys": [
+        "bert"
+      ],
+      "retrieved_paper_keys": [
+        "bert",
+        "bert",
+        "bert",
+        "bert",
+        "bert",
+        "bert",
+        "bert",
+        "bert"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "id": "bert_7",
+      "question": "What is the [CLS] token used for in BERT's input representation?",
+      "expected_paper_keys": [
+        "bert"
+      ],
+      "retrieved_paper_keys": [
+        "bert",
+        "bert",
+        "bert",
+        "bert",
+        "bert",
+        "rag_paper",
+        "bert",
+        "bert"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "id": "rag_paper_1",
+      "question": "What problem does Retrieval-Augmented Generation (RAG) aim to solve compared to purely parametric language models?",
+      "expected_paper_keys": [
+        "rag_paper"
+      ],
+      "retrieved_paper_keys": [
+        "survey",
+        "rag_paper",
+        "rag_paper",
+        "survey",
+        "survey",
+        "rag_paper",
+        "rag_paper",
+        "survey"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 0.5
+    },
+    {
+      "id": "rag_paper_2",
+      "question": "What are the two RAG model variants proposed in the paper (RAG-Sequence vs RAG-Token)?",
+      "expected_paper_keys": [
+        "rag_paper"
+      ],
+      "retrieved_paper_keys": [
+        "rag_paper",
+        "survey",
+        "rag_paper",
+        "survey",
+        "survey",
+        "rag_paper",
+        "survey",
+        "rag_paper"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "id": "rag_paper_3",
+      "question": "What retriever is used in the RAG paper, and how is it pre-trained?",
+      "expected_paper_keys": [
+        "rag_paper"
+      ],
+      "retrieved_paper_keys": [
+        "rag_paper",
+        "rag_paper",
+        "rag_paper",
+        "rag_paper",
+        "rag_paper",
+        "rag_paper",
+        "survey",
+        "rag_paper"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "id": "rag_paper_4",
+      "question": "What non-parametric memory does RAG use for retrieval?",
+      "expected_paper_keys": [
+        "rag_paper"
+      ],
+      "retrieved_paper_keys": [
+        "rag_paper",
+        "rag_paper",
+        "rag_paper",
+        "rag_paper",
+        "rag_paper",
+        "rag_paper",
+        "survey",
+        "rag_paper"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "id": "rag_paper_5",
+      "question": "How does RAG combine the retriever and generator during end-to-end training?",
+      "expected_paper_keys": [
+        "rag_paper"
+      ],
+      "retrieved_paper_keys": [
+        "rag_paper",
+        "rag_paper",
+        "rag_paper",
+        "rag_paper",
+        "survey",
+        "survey",
+        "rag_paper",
+        "survey"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "id": "rag_paper_6",
+      "question": "On which tasks was RAG evaluated, and how did it perform compared to purely extractive or closed-book approaches?",
+      "expected_paper_keys": [
+        "rag_paper"
+      ],
+      "retrieved_paper_keys": [
+        "survey",
+        "rag_paper",
+        "survey",
+        "survey",
+        "rag_paper",
+        "survey",
+        "survey",
+        "survey"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 0.5
+    },
+    {
+      "id": "rag_paper_7",
+      "question": "How does RAG handle the marginalization over retrieved documents during generation?",
+      "expected_paper_keys": [
+        "rag_paper"
+      ],
+      "retrieved_paper_keys": [
+        "rag_paper",
+        "rag_paper",
+        "rag_paper",
+        "rag_paper",
+        "survey",
+        "survey",
+        "survey",
+        "survey"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "id": "mrkl_1",
+      "question": "What does MRKL stand for, and what is the core idea behind MRKL Systems?",
+      "expected_paper_keys": [
+        "mrkl"
+      ],
+      "retrieved_paper_keys": [
+        "mrkl",
+        "mrkl",
+        "mrkl",
+        "mrkl",
+        "mrkl",
+        "mrkl",
+        "mrkl",
+        "mrkl"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "id": "mrkl_2",
+      "question": "What problem with large language models does the MRKL paper primarily address, such as arithmetic or reasoning failures?",
+      "expected_paper_keys": [
+        "mrkl"
+      ],
+      "retrieved_paper_keys": [
+        "mrkl",
+        "mrkl",
+        "mrkl",
+        "mrkl",
+        "mrkl",
+        "mrkl",
+        "mrkl",
+        "mrkl"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "id": "mrkl_3",
+      "question": "How does the MRKL architecture route a query to different expert modules?",
+      "expected_paper_keys": [
+        "mrkl"
+      ],
+      "retrieved_paper_keys": [
+        "mrkl",
+        "mrkl",
+        "mrkl",
+        "survey",
+        "mrkl",
+        "mrkl",
+        "mrkl",
+        "mrkl"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "id": "mrkl_4",
+      "question": "What role does the large language model play in a MRKL system beyond being the sole source of knowledge?",
+      "expected_paper_keys": [
+        "mrkl"
+      ],
+      "retrieved_paper_keys": [
+        "mrkl",
+        "mrkl",
+        "mrkl",
+        "mrkl",
+        "mrkl",
+        "mrkl",
+        "mrkl",
+        "mistral7b"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "id": "mrkl_5",
+      "question": "What kinds of external modules or tools does the MRKL paper propose integrating with the LLM router?",
+      "expected_paper_keys": [
+        "mrkl"
+      ],
+      "retrieved_paper_keys": [
+        "mrkl",
+        "mrkl",
+        "survey",
+        "survey",
+        "mrkl",
+        "mrkl",
+        "survey",
+        "survey"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "id": "mrkl_6",
+      "question": "What experiments does the paper use to demonstrate the limitations of pure LLMs on arithmetic tasks?",
+      "expected_paper_keys": [
+        "mrkl"
+      ],
+      "retrieved_paper_keys": [
+        "mrkl",
+        "mrkl",
+        "mrkl",
+        "mrkl",
+        "mrkl",
+        "mrkl",
+        "mrkl",
+        "mrkl"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "id": "mrkl_7",
+      "question": "How does MRKL relate to the broader idea of combining neural networks with symbolic or external systems?",
+      "expected_paper_keys": [
+        "mrkl"
+      ],
+      "retrieved_paper_keys": [
+        "mrkl",
+        "mrkl",
+        "mrkl",
+        "mrkl",
+        "mrkl",
+        "mrkl",
+        "mrkl",
+        "mrkl"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "id": "mistral7b_1",
+      "question": "What is Mistral 7B, and how does it compare in performance to Llama 2 13B and Llama 1 34B?",
+      "expected_paper_keys": [
+        "mistral7b"
+      ],
+      "retrieved_paper_keys": [
+        "mistral7b",
+        "mistral7b",
+        "mistral7b",
+        "mistral7b",
+        "mistral7b",
+        "mistral7b",
+        "mistral7b",
+        "mistral7b"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "id": "mistral7b_2",
+      "question": "What attention mechanism does Mistral 7B use to improve inference efficiency?",
+      "expected_paper_keys": [
+        "mistral7b"
+      ],
+      "retrieved_paper_keys": [
+        "mistral7b",
+        "mistral7b",
+        "mistral7b",
+        "mistral7b",
+        "mistral7b",
+        "mistral7b",
+        "attention",
+        "mistral7b"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "id": "mistral7b_3",
+      "question": "What is sliding window attention, and how does it help Mistral 7B handle longer sequences efficiently?",
+      "expected_paper_keys": [
+        "mistral7b"
+      ],
+      "retrieved_paper_keys": [
+        "mistral7b",
+        "mistral7b",
+        "mistral7b",
+        "mistral7b",
+        "mistral7b",
+        "attention",
+        "attention",
+        "mistral7b"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "id": "mistral7b_4",
+      "question": "What is Grouped-Query Attention (GQA), and why is it used in Mistral 7B?",
+      "expected_paper_keys": [
+        "mistral7b"
+      ],
+      "retrieved_paper_keys": [
+        "mistral7b",
+        "mistral7b",
+        "mistral7b",
+        "attention",
+        "mistral7b",
+        "mistral7b",
+        "mistral7b",
+        "judge"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "id": "mistral7b_5",
+      "question": "What is the rolling buffer cache, and how does it reduce memory usage during inference?",
+      "expected_paper_keys": [
+        "mistral7b"
+      ],
+      "retrieved_paper_keys": [
+        "mistral7b",
+        "mistral7b",
+        "mistral7b",
+        "mistral7b",
+        "rag_paper",
+        "survey",
+        "rag_paper",
+        "attention"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "id": "mistral7b_6",
+      "question": "What fine-tuned variant of Mistral 7B is introduced for instruction-following, and how does it perform relative to Llama 2 13B chat?",
+      "expected_paper_keys": [
+        "mistral7b"
+      ],
+      "retrieved_paper_keys": [
+        "mistral7b",
+        "mistral7b",
+        "mistral7b",
+        "mistral7b",
+        "mistral7b",
+        "mistral7b",
+        "mistral7b",
+        "mistral7b"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "id": "mistral7b_7",
+      "question": "What benchmarks were used to evaluate Mistral 7B, and in which categories does it particularly excel?",
+      "expected_paper_keys": [
+        "mistral7b"
+      ],
+      "retrieved_paper_keys": [
+        "mistral7b",
+        "mistral7b",
+        "mistral7b",
+        "mistral7b",
+        "mistral7b",
+        "mistral7b",
+        "mistral7b",
+        "mistral7b"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "id": "judge_1",
+      "question": "What is the central question explored in \"Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena\"?",
+      "expected_paper_keys": [
+        "judge"
+      ],
+      "retrieved_paper_keys": [
+        "judge",
+        "judge",
+        "judge",
+        "judge",
+        "judge",
+        "judge",
+        "judge",
+        "judge"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "id": "judge_2",
+      "question": "What is MT-Bench, and what does it evaluate?",
+      "expected_paper_keys": [
+        "judge"
+      ],
+      "retrieved_paper_keys": [
+        "judge",
+        "judge",
+        "judge",
+        "judge",
+        "judge",
+        "judge",
+        "mrkl",
+        "judge"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "id": "judge_3",
+      "question": "What is Chatbot Arena, and how does it collect human preference data?",
+      "expected_paper_keys": [
+        "judge"
+      ],
+      "retrieved_paper_keys": [
+        "judge",
+        "judge",
+        "judge",
+        "judge",
+        "judge",
+        "judge",
+        "judge",
+        "judge"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "id": "judge_4",
+      "question": "What biases does the paper identify in LLM judges, such as position bias, verbosity bias, or self-enhancement bias?",
+      "expected_paper_keys": [
+        "judge"
+      ],
+      "retrieved_paper_keys": [
+        "judge",
+        "judge",
+        "judge",
+        "judge",
+        "judge",
+        "judge",
+        "judge",
+        "judge"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "id": "judge_5",
+      "question": "How well did GPT-4 as a judge agree with human preferences, according to the paper's findings?",
+      "expected_paper_keys": [
+        "judge"
+      ],
+      "retrieved_paper_keys": [
+        "judge",
+        "judge",
+        "judge",
+        "judge",
+        "judge",
+        "judge",
+        "judge",
+        "judge"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "id": "judge_6",
+      "question": "What methods does the paper propose to mitigate biases in LLM-as-a-judge evaluations?",
+      "expected_paper_keys": [
+        "judge"
+      ],
+      "retrieved_paper_keys": [
+        "judge",
+        "judge",
+        "judge",
+        "judge",
+        "judge",
+        "judge",
+        "judge",
+        "judge"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "id": "judge_7",
+      "question": "What limitations of using LLM judges are identified in the paper?",
+      "expected_paper_keys": [
+        "judge"
+      ],
+      "retrieved_paper_keys": [
+        "judge",
+        "judge",
+        "judge",
+        "judge",
+        "judge",
+        "judge",
+        "judge",
+        "judge"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "id": "survey_1",
+      "question": "What are the three main paradigms of RAG identified in the survey (Naive RAG, Advanced RAG, Modular RAG)?",
+      "expected_paper_keys": [
+        "survey"
+      ],
+      "retrieved_paper_keys": [
+        "survey",
+        "survey",
+        "survey",
+        "survey",
+        "survey",
+        "survey",
+        "survey",
+        "survey"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "id": "survey_2",
+      "question": "What are the main components of a typical RAG pipeline described in the survey?",
+      "expected_paper_keys": [
+        "survey"
+      ],
+      "retrieved_paper_keys": [
+        "survey",
+        "survey",
+        "survey",
+        "survey",
+        "survey",
+        "survey",
+        "survey",
+        "survey"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "id": "survey_3",
+      "question": "What retrieval augmentation techniques are discussed for improving retrieval quality, such as query rewriting or re-ranking?",
+      "expected_paper_keys": [
+        "survey"
+      ],
+      "retrieved_paper_keys": [
+        "survey",
+        "survey",
+        "survey",
+        "survey",
+        "survey",
+        "rag_paper",
+        "survey",
+        "survey"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "id": "survey_4",
+      "question": "What evaluation frameworks and benchmarks does the survey discuss for assessing RAG systems?",
+      "expected_paper_keys": [
+        "survey"
+      ],
+      "retrieved_paper_keys": [
+        "survey",
+        "survey",
+        "survey",
+        "survey",
+        "survey",
+        "survey",
+        "survey",
+        "survey"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "id": "survey_5",
+      "question": "What are the key challenges facing RAG systems identified by the survey, such as long context or robustness?",
+      "expected_paper_keys": [
+        "survey"
+      ],
+      "retrieved_paper_keys": [
+        "survey",
+        "survey",
+        "survey",
+        "survey",
+        "survey",
+        "survey",
+        "survey",
+        "survey"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "id": "survey_6",
+      "question": "How does the survey categorize the augmentation stages into pre-retrieval, retrieval, and post-retrieval?",
+      "expected_paper_keys": [
+        "survey"
+      ],
+      "retrieved_paper_keys": [
+        "survey",
+        "survey",
+        "survey",
+        "survey",
+        "survey",
+        "survey",
+        "survey",
+        "survey"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "id": "survey_7",
+      "question": "What future research directions does the survey propose for RAG?",
+      "expected_paper_keys": [
+        "survey"
+      ],
+      "retrieved_paper_keys": [
+        "survey",
+        "survey",
+        "survey",
+        "survey",
+        "survey",
+        "survey",
+        "survey",
+        "survey"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "id": "meta_1",
+      "question": "How many papers are indexed in this knowledge base, and what is the topic of each one?",
+      "expected_paper_keys": [
+        "meta"
+      ],
+      "retrieved_paper_keys": [
+        "survey",
+        "survey",
+        "survey",
+        "meta",
+        "survey",
+        "survey",
+        "survey",
+        "survey"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 0.25
+    }
+  ],
+  "out_of_corpus": [
+    {
+      "id": "unrelated_1",
+      "question": "What is the boiling point of water at sea level?",
+      "subtype": "unrelated",
+      "response": "Based on the provided context, there is no information about the boiling point of water. The retrieved documents discuss topics like factuality, specificity, Retrieval-Augmented Generation, FEVER fact verification, and MT-Bench evaluations\u2014none of which mention physical constants or thermodynamic properties of water.\n\nSources: No document in the context supports the answer.",
+      "sources_block": "No document in the context supports the answer.",
+      "false_accept": false
+    },
+    {
+      "id": "unrelated_2",
+      "question": "Who wrote the novel \"Pride and Prejudice\"?",
+      "subtype": "unrelated",
+      "response": "Based on the retrieved context: Jane Austen.",
+      "sources_block": "",
+      "false_accept": false
+    },
+    {
+      "id": "unrelated_3",
+      "question": "What year did the French Revolution begin?",
+      "subtype": "unrelated",
+      "response": "Based on the retrieved context: The provided documents do not contain information about the year the French Revolution began. The first document discusses retrieval-augmented generation and models like REALM and ORQA, while the second document addresses limitations of language models regarding dynamic and proprietary information. Neither mentions the French Revolution.\n\nSources: No document in the context supports this answer.",
+      "sources_block": "No document in the context supports this answer.",
+      "false_accept": false
+    },
+    {
+      "id": "unrelated_4",
+      "question": "What is the chemical formula for table salt?",
+      "subtype": "unrelated",
+      "response": "NaCl (sodium chloride) is the chemical formula for table salt, as specified in the context documents.",
+      "sources_block": "",
+      "false_accept": false
+    },
+    {
+      "id": "unrelated_5",
+      "question": "How many continents are there on Earth?",
+      "subtype": "unrelated",
+      "response": "7 (General knowledge, not the provided documents)",
+      "sources_block": "",
+      "false_accept": false
+    },
+    {
+      "id": "unrelated_6",
+      "question": "What is the capital city of Australia?",
+      "subtype": "unrelated",
+      "response": "The capital city of Australia is Canberra. This information is often included in cultural experiences and must-see attractions mentioned in LLM evaluations, such as those in MT-Bench and Chatbot Arena.\n\nSources:\n- Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena",
+      "sources_block": "- Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena",
+      "false_accept": true
+    },
+    {
+      "id": "adjacent_1",
+      "question": "What is the diffusion model architecture used in Stable Diffusion?",
+      "subtype": "adjacent",
+      "response": "The provided context does not contain information about the diffusion model architecture used in Stable Diffusion.",
+      "sources_block": "",
+      "false_accept": false
+    },
+    {
+      "id": "adjacent_2",
+      "question": "How does the AlphaFold model predict protein structures?",
+      "subtype": "adjacent",
+      "response": "The provided context does not contain information about the AlphaFold model or its method for predicting protein structures. \n\nSources: No document in the context supports this answer.",
+      "sources_block": "No document in the context supports this answer.",
+      "false_accept": false
+    },
+    {
+      "id": "adjacent_3",
+      "question": "What is Reinforcement Learning from Human Feedback (RLHF), and how was it used to train InstructGPT?",
+      "subtype": "adjacent",
+      "response": "Reinforcement Learning from Human Feedback (RLHF) is a training paradigm that uses human preferences to shape model outputs, guiding the model toward more helpful and harmless responses. In the InstructGPT paper, RLHF was used to fine-tune a pre-trained language model by having human rank model outputs, training a reward model on those rankings, and then applying proximal policy optimization to align the model with human preferences.\n\nSources:\n[Source: Retrieval-Augmented Generation for Large Language Models: A Survey]",
+      "sources_block": "[Source: Retrieval-Augmented Generation for Large Language Models: A Survey]",
+      "false_accept": true
+    },
+    {
+      "id": "adjacent_4",
+      "question": "What is LoRA (Low-Rank Adaptation), and how does it enable efficient fine-tuning of large models?",
+      "subtype": "adjacent",
+      "response": "LoRA (Low-Rank Adaptation) is a parameter-efficient fine-tuning method that freezes the pre-trained model weights and injects low-rank matrices into each layer to learn task-specific adaptations. By updating only these small adapter matrices instead of the full model, LoRA dramatically reduces the number of trainable parameters, making fine-tuning faster and more feasible with limited computational resources. The original model weights are preserved, and the adapters can be combined (stacked) at inference time to support multiple tasks without re-running full training.\n\nSources:\n- Attention Is All You Need",
+      "sources_block": "- Attention Is All You Need",
+      "false_accept": true
+    },
+    {
+      "id": "adjacent_5",
+      "question": "What is the CLIP model, and how does it learn joint image-text representations?",
+      "subtype": "adjacent",
+      "response": "Based on the provided context, the CLIP model and its approach to learning joint image-text representations are not mentioned. The context includes information about BLIP-2, \"Visualize Before You Write,\" GSS, UEOP, KNN-based attention fusion, and Vid2Seq, but no reference to CLIP or its architecture or training methodology. Therefore, the answer cannot be supported by the retrieved documents.\n\nSources: The retrieved context does not contain information about the CLIP model.",
+      "sources_block": "The retrieved context does not contain information about the CLIP model.",
+      "false_accept": false
+    },
+    {
+      "id": "adjacent_6",
+      "question": "What is quantization-aware training, and how does it reduce model size for deployment?",
+      "subtype": "adjacent",
+      "response": "Quantization-aware training is a technique used to reduce model size and improve inference efficiency by simulating the effects of quantization (e.g., reducing precision from 32-bit floating-point to 8-bit integers) during the training process. By incorporating quantization-aware training, models can be trained to be more robust to the reduced precision, allowing them to be deployed with smaller footprints and faster inference without significant loss in accuracy. This reduction in bit-width directly reduces the model size, making it more suitable for deployment on resource-constrained devices.",
+      "sources_block": "",
+      "false_accept": false
+    },
+    {
+      "id": "adjacent_7",
+      "question": "What is the Mixture-of-Experts (MoE) architecture used in models like Switch Transformer?",
+      "subtype": "adjacent",
+      "response": "MoE architecture is a neural network design that sparsely activates subsets of the model's parameters for each token, allowing for much larger models to be trained efficiently with the same compute budget.",
+      "sources_block": "",
+      "false_accept": false
+    },
+    {
+      "id": "adjacent_8",
+      "question": "How does the Vision Transformer (ViT) adapt the Transformer architecture for image classification?",
+      "subtype": "adjacent",
+      "response": "The Vision Transformer (ViT) adapts the Transformer architecture for image classification by splitting an input image into fixed-size patches, linearly embedding each patch, and prepending a [class] token to the sequence, which is then processed by the standard Transformer encoder. The authors demonstrate that this simple adaptation allows ViT to achieve competitive ImageNet classification performance when pre-trained on large datasets. The paper explicitly frames ViT as a Transformer that processes a sequence of image patches rather than text tokens.\n\nSources: [Source: attention]",
+      "sources_block": "[Source: attention]",
+      "false_accept": false
+    }
+  ]
+}
