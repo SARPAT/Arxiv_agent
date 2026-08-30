@@ -1,0 +1,10 @@
+{
+  "n_in_corpus_questions": 50,
+  "n_out_of_corpus_questions": 14,
+  "recall_at_5": 1.0,
+  "recall_at_8": 1.0,
+  "mrr": 0.965,
+  "false_accept_rate": 0.21428571428571427,
+  "false_accept_rate_unrelated": 0.16666666666666666,
+  "false_accept_rate_adjacent": 0.25
+}
