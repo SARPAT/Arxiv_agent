@@ -1,4 +1,4 @@
-arxiv==4.0.1
+arxiv==2.4.1
 pymupdf==1.28.2
 langchain-community==0.4.2
 sentence-transformers==6.0.0
