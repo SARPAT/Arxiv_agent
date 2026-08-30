@@ -1,0 +1,13 @@
+venv/
+__pycache__/
+*.pyc
+.env
+
+# Hugging Face / sentence-transformers model cache — downloaded at
+# runtime, never committed
+.cache/
+models_cache/
+sentence_transformers_cache/
+
+# Local agent instructions — never committed
+CLAUDE.md
