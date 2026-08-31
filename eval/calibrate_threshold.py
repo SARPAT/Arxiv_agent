@@ -24,10 +24,10 @@ Run this externally, then copy the printed threshold into ``rag/gate.py``'s
 ``SIMILARITY_THRESHOLD``.
 """
 
-import json
 from pathlib import Path
 
 from eval.run_eval import load_golden_set
+from eval.utils import save_json
 from rag.retrieval import retrieve
 
 CALIBRATION_RESULT_PATH = Path("eval/calibration_result.json")
@@ -140,7 +140,7 @@ def main():
         "n_in_corpus": sum(labels),
         "n_out_of_corpus": n_ooc,
     }
-    CALIBRATION_RESULT_PATH.write_text(json.dumps(result, indent=2, default=float))
+    save_json(CALIBRATION_RESULT_PATH, result)
     print(f"\nFull calibration detail written to {CALIBRATION_RESULT_PATH}")
     print("Next step: copy the threshold above into rag/gate.py's SIMILARITY_THRESHOLD.")
 

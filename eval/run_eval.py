@@ -47,6 +47,7 @@ from pathlib import Path
 
 from langchain_core.documents import Document
 
+from eval.utils import save_json
 from ingestion.build_index import TARGET_PAPERS
 from rag.pipeline import assemble_context, retrieve_and_gate, run_pipeline
 from rag.retrieval import retrieve
@@ -232,8 +233,8 @@ def main():
         "out_of_corpus": out_of_corpus_results,
     }
 
-    RESULTS_PATH.write_text(json.dumps(results, indent=2, default=float))
-    SUMMARY_PATH.write_text(json.dumps(summary, indent=2, default=float))
+    save_json(RESULTS_PATH, results)
+    save_json(SUMMARY_PATH, summary)
 
     print("\n--- Evaluation summary ---")
     for key, value in summary.items():
