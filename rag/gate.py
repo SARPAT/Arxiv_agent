@@ -5,9 +5,11 @@ against the golden set's true in-corpus / out-of-corpus labels, not
 hand-picked. See that script for the selection method and its rationale.
 """
 
-# Set from eval/calibration_result.json after running
-# eval/calibrate_threshold.py against the real index and models.
-SIMILARITY_THRESHOLD = None
+# Calibrated by eval/calibrate_threshold.py against the golden set's 50
+# in-corpus / 14 out-of-corpus labels. Full detail in
+# eval/calibration_result.json: ROC-AUC 0.9514, sensitivity 0.84 at
+# specificity 0.9286 (target was specificity >= 0.90).
+SIMILARITY_THRESHOLD = 0.493410
 
 
 def should_abstain(top1_score: float) -> bool:
