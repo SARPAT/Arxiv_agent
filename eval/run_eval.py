@@ -232,8 +232,8 @@ def main():
         "out_of_corpus": out_of_corpus_results,
     }
 
-    RESULTS_PATH.write_text(json.dumps(results, indent=2))
-    SUMMARY_PATH.write_text(json.dumps(summary, indent=2))
+    RESULTS_PATH.write_text(json.dumps(results, indent=2, default=float))
+    SUMMARY_PATH.write_text(json.dumps(summary, indent=2, default=float))
 
     print("\n--- Evaluation summary ---")
     for key, value in summary.items():
