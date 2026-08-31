@@ -140,7 +140,7 @@ def main():
         "n_in_corpus": sum(labels),
         "n_out_of_corpus": n_ooc,
     }
-    CALIBRATION_RESULT_PATH.write_text(json.dumps(result, indent=2))
+    CALIBRATION_RESULT_PATH.write_text(json.dumps(result, indent=2, default=float))
     print(f"\nFull calibration detail written to {CALIBRATION_RESULT_PATH}")
     print("Next step: copy the threshold above into rag/gate.py's SIMILARITY_THRESHOLD.")
 
