@@ -1,16 +1,18 @@
 """Similarity search over the FAISS index built in Checkpoint 1.
 
 Loads the persisted index from ``data/docstore_index/`` using the same
-``BAAI/bge-base-en-v1.5`` embedding model it was built with — FAISS indexes
-are just vectors plus metadata, so querying with a different embedder
-would silently produce meaningless nearest-neighbor results.
+embedding model (``app.config.settings.embedding_model``) it was built
+with — FAISS indexes are just vectors plus metadata, so querying with a
+different embedder would silently produce meaningless nearest-neighbor
+results.
 """
 
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 
-EMBEDDING_MODEL = "BAAI/bge-base-en-v1.5"
+from app.config import settings
+
 INDEX_PATH = "data/docstore_index"
 
 # Module-level cache for the loaded index and embedder. This is *not*
@@ -33,7 +35,7 @@ def _get_vectorstore() -> FAISS:
     """
     global _vectorstore
     if _vectorstore is None:
-        embeddings = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL)
+        embeddings = HuggingFaceEmbeddings(model_name=settings.embedding_model)
         _vectorstore = FAISS.load_local(
             INDEX_PATH, embeddings, allow_dangerous_deserialization=True
         )
