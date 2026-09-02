@@ -11,3 +11,4 @@ uvicorn==0.52.4
 gradio==6.26.0
 pydantic-settings==2.15.0
 httpx==0.28.1
+redis==8.1.0
