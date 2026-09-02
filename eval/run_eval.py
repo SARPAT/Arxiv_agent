@@ -33,23 +33,27 @@ Metrics:
   categories) where the single closest retrieved chunk's content actually
   appears in the context string ``assemble_context()`` produced.
 
-Requires ``SIMILARITY_THRESHOLD`` to be set in ``rag/gate.py`` (see
-``eval/calibrate_threshold.py``) — every question goes through the gate,
-so this script cannot run against the placeholder value.
+``settings.similarity_threshold`` (see ``app/config.py``) is the gate's
+threshold, calibrated by ``eval/calibrate_threshold.py`` — every question
+in this script goes through that same gate.
 
 Writes ``eval/results_checkpoint3.json`` (full per-question detail) and
 ``eval/summary_checkpoint3.json`` (headline numbers).
 """
 
 import json
-import re
 from pathlib import Path
 
 from langchain_core.documents import Document
 
 from eval.utils import save_json
-from ingestion.build_index import TARGET_PAPERS
-from rag.pipeline import assemble_context, retrieve_and_gate, run_pipeline
+from rag.pipeline import (
+    REAL_PAPER_TITLES,
+    assemble_context,
+    extract_sources_block,
+    retrieve_and_gate,
+    run_pipeline,
+)
 from rag.retrieval import retrieve
 
 GOLDEN_SET_PATH = Path("eval/golden_set.jsonl")
@@ -57,8 +61,6 @@ RESULTS_PATH = Path("eval/results_checkpoint3.json")
 SUMMARY_PATH = Path("eval/summary_checkpoint3.json")
 
 RETRIEVAL_EVAL_K = 8  # covers both Recall@5 and Recall@8 from one retrieval call
-
-REAL_PAPER_TITLES = [info["title"] for info in TARGET_PAPERS.values()]
 
 
 def load_golden_set(path: Path = GOLDEN_SET_PATH) -> list[dict]:
@@ -77,12 +79,6 @@ def expected_paper_keys(entry: dict) -> list[str]:
     than one source paper.
     """
     return [entry["paper_key"]]
-
-
-def extract_sources_block(response_text: str) -> str:
-    """Return the text of the response's "Sources:" block, or "" if absent."""
-    match = re.search(r"Sources:\s*(.*)", response_text, re.IGNORECASE | re.DOTALL)
-    return match.group(1).strip() if match else ""
 
 
 def check_false_attribution(sources_text: str, real_titles: list[str]) -> bool:
