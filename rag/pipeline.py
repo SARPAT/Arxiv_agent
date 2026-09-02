@@ -5,6 +5,7 @@ should call — it wires ``retrieval.py``, ``gate.py``, and ``generation.py``
 together and owns no state of its own beyond what's passed in as arguments.
 """
 
+import logging
 import re
 from collections.abc import Iterator
 from dataclasses import dataclass
@@ -17,6 +18,8 @@ from ingestion.build_index import TARGET_PAPERS
 from rag.gate import should_abstain
 from rag.generation import generate, generate_stream
 from rag.retrieval import retrieve
+
+logger = logging.getLogger(__name__)
 
 ABSTAIN_RESPONSE = "I don't have information on that in my corpus.\n\nSources: none"
 
@@ -221,9 +224,20 @@ def run_pipeline_stream(
         yield {"type": "token", "delta": delta}
 
     full_text = "".join(accumulated)
+    sources = extract_cited_sources(full_text)
+    if not sources:
+        # Reached only on the non-abstain path, where a citation is expected.
+        # `repr()` rather than the plain string, so any invisible or unusual
+        # characters that a live streamed response contains are visible in
+        # the log line instead of silently blending into normal whitespace.
+        logger.warning(
+            "extract_cited_sources() found no citations in a non-abstained "
+            "response; raw text: %r",
+            full_text,
+        )
     yield {
         "type": "done",
-        "sources": extract_cited_sources(full_text),
+        "sources": sources,
         "abstained": False,
         "top1_score": top1_score,
     }
