@@ -100,8 +100,19 @@ def assemble_context(
 
 
 def extract_sources_block(response_text: str) -> str:
-    """Return the text of the response's "Sources:" block, or "" if absent."""
-    match = re.search(r"Sources:\s*(.*)", response_text, re.IGNORECASE | re.DOTALL)
+    """Return the text of the response's "Sources:" block, or "" if absent.
+
+    Matches "Sources:" wherever it occurs in the text, with any amount or
+    kind of whitespace before or after it — there's no line-start anchor,
+    so a preceding newline is never required, which matters because
+    accumulated streamed text isn't guaranteed to have one. Markdown
+    emphasis directly wrapping the word ("**Sources:**", "*Sources:*") is
+    stripped first so it doesn't need special-casing separately.
+    """
+    normalized = re.sub(
+        r"[*_]{1,2}(Sources:)[*_]{1,2}", r"\1", response_text, flags=re.IGNORECASE
+    )
+    match = re.search(r"Sources:\s*(.*)", normalized, re.IGNORECASE | re.DOTALL)
     return match.group(1).strip() if match else ""
 
 
@@ -229,3 +240,18 @@ def answer_query(query: str, history: list[dict[str, str]] | None = None) -> str
     each other.
     """
     return run_pipeline(query, history=history).answer
+
+
+if __name__ == "__main__":
+    # Regression check for extract_cited_sources(): a "Sources:" marker
+    # with irregular spacing around it (two spaces, no preceding newline)
+    # rather than the model's usual newline-separated block format.
+    example_text = (
+        "The scaling factor prevents the dot products from growing too "
+        "large in magnitude, which would otherwise push softmax into "
+        "regions with extremely small gradients.  Sources: Attention Is "
+        "All You Need"
+    )
+    cited = extract_cited_sources(example_text)
+    assert cited == ["Attention Is All You Need"], cited
+    print("extract_cited_sources() regression test passed.")
