@@ -17,6 +17,12 @@ class Settings(BaseSettings):
 
     nvidia_api_key: str = ""
 
+    # No default: app/session.py needs a real Redis endpoint to store
+    # conversation history, so an unset REDIS_URL should fail at startup
+    # rather than the service silently running with nowhere to persist
+    # sessions.
+    redis_url: str
+
     embedding_model: str = "BAAI/bge-base-en-v1.5"
     generation_model: str = "nvidia/nemotron-3.5-lightning-30b-a3b"
     max_tokens: int = 512
