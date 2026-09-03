@@ -1,3 +1,10 @@
+# sentence-transformers pulls in torch, which defaults to a CUDA-enabled
+# build via plain `pip install` - far larger than needed on a CPU-only
+# free-tier host (Render), and a real threat to fitting inside its 512MB
+# RAM limit. Pin the CPU-only wheel from PyTorch's own index instead.
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.11.0+cpu
+
 arxiv==2.4.1
 numpy==2.4.6
 pymupdf==1.28.2
