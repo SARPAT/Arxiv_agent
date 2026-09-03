@@ -6,6 +6,7 @@ arrive instead of waiting for the full response.
 """
 
 import json
+import logging
 import uuid
 from collections.abc import Iterator
 
@@ -15,6 +16,20 @@ from pydantic import BaseModel
 
 from app.session import append_turn, get_history
 from rag.pipeline import run_pipeline_stream
+
+# uvicorn configures its own "uvicorn"/"uvicorn.access"/"uvicorn.error"
+# loggers but never touches the root logger, so without this, every
+# `logging.getLogger(__name__)` call elsewhere in app/ and rag/ (cache
+# hit/miss lines, Redis-degradation warnings, etc.) is silently dropped
+# under a real server run - the root logger has no handler, and its
+# default level (WARNING) filters out INFO-level records before a handler
+# ever gets a chance to run. Configuring this here, at the module level of
+# the app's entry point, ensures it's in place regardless of whether the
+# process was started via `uvicorn app.api:app` or by importing this
+# module directly.
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s"
+)
 
 app = FastAPI()
 
