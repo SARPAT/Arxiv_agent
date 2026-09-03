@@ -127,3 +127,33 @@ def set_cached_retrieval(
         _client.set(key, value, ex=RETRIEVAL_TTL_SECONDS)
     except redis.exceptions.RedisError:
         logger.warning("Redis unavailable writing retrieval cache (key=%s)", key)
+
+
+if __name__ == "__main__":
+    import fakeredis
+    import numpy as np
+
+    # A real embedder/FAISS index returns numpy.float32 values, not plain
+    # Python floats - json.dumps chokes on those without json_dumps_safe's
+    # default=float. Exercise both writers with actual numpy.float32
+    # values (not floats that merely look like them) so this class of bug
+    # is caught here instead of only against live FAISS output.
+    _client = fakeredis.FakeRedis(decode_responses=True)
+
+    set_cached_embedding("test query", [np.float32(0.1), np.float32(0.2)])
+    embedding = get_cached_embedding("test query")
+    assert embedding == [np.float32(0.1), np.float32(0.2)], embedding
+    print("set_cached_embedding()/get_cached_embedding() handled numpy.float32 values without raising.")
+
+    set_cached_retrieval(
+        "test query",
+        corpus_version=1,
+        chunks=[{"page_content": "chunk text", "metadata": {"source": "doc0"}}],
+        scores=[np.float32(0.4934097)],
+    )
+    retrieval = get_cached_retrieval("test query", corpus_version=1)
+    assert retrieval["scores"] == [np.float32(0.4934097)], retrieval
+    print(
+        "set_cached_retrieval()/get_cached_retrieval() handled numpy.float32 "
+        "scores without raising."
+    )
