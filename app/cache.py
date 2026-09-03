@@ -24,6 +24,7 @@ import re
 import redis
 
 from app.config import settings
+from app.json_utils import json_dumps_safe
 
 logger = logging.getLogger(__name__)
 
@@ -93,7 +94,7 @@ def set_cached_embedding(query: str, vector: list[float]) -> None:
     """Write ``vector`` to the embedding cache for ``query``."""
     key = f"embedding:{_query_hash(query)}"
     try:
-        _client.set(key, json.dumps(vector), ex=EMBEDDING_TTL_SECONDS)
+        _client.set(key, json_dumps_safe(vector), ex=EMBEDDING_TTL_SECONDS)
     except redis.exceptions.RedisError:
         logger.warning("Redis unavailable writing embedding cache (key=%s)", key)
 
@@ -121,7 +122,7 @@ def set_cached_retrieval(
     """Write a retrieval result for ``query`` at ``corpus_version`` to the
     retrieval cache."""
     key = f"retrieval:{corpus_version}:{_query_hash(query)}"
-    value = json.dumps({"chunks": chunks, "scores": scores})
+    value = json_dumps_safe({"chunks": chunks, "scores": scores})
     try:
         _client.set(key, value, ex=RETRIEVAL_TTL_SECONDS)
     except redis.exceptions.RedisError:

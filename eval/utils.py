@@ -1,19 +1,15 @@
 """Small shared utilities for the eval scripts."""
 
-import json
 from pathlib import Path
 from typing import Any
 
+from app.json_utils import json_dumps_safe
+
 
 def save_json(path: Path, data: Any, indent: int = 2) -> None:
-    """Write ``data`` to ``path`` as JSON.
-
-    FAISS returns similarity scores as ``numpy.float32``, which
-    ``json.dumps`` can't serialize on its own — ``default=float`` handles
-    that by converting any type ``json.dumps`` doesn't recognize through
-    ``float()``, which numpy's scalar types support.
-    """
-    path.write_text(json.dumps(data, indent=indent, default=float))
+    """Write ``data`` to ``path`` as JSON, via ``json_dumps_safe`` (handles
+    FAISS's ``numpy.float32`` scores, which plain ``json.dumps`` can't)."""
+    path.write_text(json_dumps_safe(data, indent=indent))
 
 
 if __name__ == "__main__":
