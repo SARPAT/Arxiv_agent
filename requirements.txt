@@ -16,6 +16,7 @@ python-dotenv==1.2.3
 fastapi==0.141.1
 uvicorn==0.52.4
 gradio==6.26.0
+spaces==0.51.3
 pydantic-settings==2.15.0
 httpx==0.28.1
 redis==8.1.0
