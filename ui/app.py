@@ -12,10 +12,27 @@ import uuid
 
 import gradio as gr
 import httpx
+import spaces
 
 # Not hardcoded to localhost, so this can point at a deployed backend
 # later without a code change.
 BACKEND_URL = os.environ.get("BACKEND_URL", "http://localhost:8000")
+
+
+@spaces.GPU
+def _zerogpu_stub():
+    """Satisfies Hugging Face Spaces' free-tier ZeroGPU requirement.
+
+    This app does no local GPU or model work at all - embedding and
+    generation both happen on the Render backend over HTTP - but Spaces'
+    CPU Basic tier is paid-only, and the free tier requires at least one
+    `@spaces.GPU`-decorated call to pass its startup check. Called once
+    below, at import time, not per-request: it's a no-op that exists
+    purely to satisfy that platform requirement.
+    """
+
+
+_zerogpu_stub()
 
 
 def _parse_sse_stream(response: httpx.Response):
