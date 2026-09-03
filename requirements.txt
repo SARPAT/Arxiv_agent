@@ -1,3 +1,19 @@
+# sentence-transformers pulls in torch, which defaults to a CUDA-enabled
+# build via plain `pip install` - far larger than needed on a CPU-only
+# free-tier host (Render), and a real threat to fitting inside its 512MB
+# RAM limit. Pin the CPU-only wheel from PyTorch's own index instead.
+#
+# NOT YET PINNED to an exact resolved version: this sandbox's network
+# policy allows pypi.org but blocks download.pytorch.org outright (proxy
+# returns 403 on CONNECT), so `pip install` here can't reach this index to
+# resolve and confirm a `+cpu` build - it silently falls back to the
+# CUDA build already cached from pypi.org instead. Needs a real install
+# (e.g. in the Render build itself, or any environment with unrestricted
+# network) to confirm the resolved version and pin it here, matching the
+# exact-version-pin convention every other dependency in this file follows.
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch
+
 arxiv==2.4.1
 numpy==2.4.6
 pymupdf==1.28.2

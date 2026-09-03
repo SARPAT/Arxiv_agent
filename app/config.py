@@ -36,5 +36,11 @@ class Settings(BaseSettings):
     retrieval_k: int = 4
     max_context_chars: int = 2500
 
+    # The deployed frontend's origin (a Hugging Face Space), so app/api.py
+    # can allow cross-origin requests from it. Empty by default - unset
+    # until that Space exists and its URL is known - which app/api.py
+    # treats as "don't add CORS support" rather than "allow everything."
+    cors_allowed_origin: str = ""
+
 
 settings = Settings()

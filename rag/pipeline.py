@@ -16,7 +16,7 @@ from langchain_core.documents import Document
 from app.config import settings
 from ingestion.build_index import TARGET_PAPERS
 from rag.gate import should_abstain
-from rag.generation import generate, generate_stream
+from rag.generation import GenerationError, generate, generate_stream
 from rag.retrieval import retrieve
 
 logger = logging.getLogger(__name__)
@@ -199,7 +199,14 @@ def run_pipeline_stream(
     - ``{"type": "token", "delta": <str>}`` for each piece of generated text
     - exactly one ``{"type": "done", "sources": [...], "abstained": <bool>,
       "top1_score": <float>}`` once the answer (or the abstain response)
-      is complete
+      is complete, **or** exactly one ``{"type": "error", "message": <str>}``
+      instead of "done" if generation fails (see ``rag/generation.py``'s
+      retry/timeout handling) — either before any token was sent, or
+      mid-stream after some already were. Callers must not treat a
+      "token"-then-nothing-else sequence as a silent success: an "error"
+      event always follows a failed generation, "done" always follows a
+      successful one, and exactly one of the two terminates every call
+      that reaches generation at all.
 
     The abstain path yields ``ABSTAIN_RESPONSE`` as a single "token" event
     followed by the same "done" shape a real answer produces, so callers
@@ -219,9 +226,13 @@ def run_pipeline_stream(
 
     context = assemble_context(docs)
     accumulated = []
-    for delta in generate_stream(query, context, history=history):
-        accumulated.append(delta)
-        yield {"type": "token", "delta": delta}
+    try:
+        for delta in generate_stream(query, context, history=history):
+            accumulated.append(delta)
+            yield {"type": "token", "delta": delta}
+    except GenerationError as exc:
+        yield {"type": "error", "message": str(exc)}
+        return
 
     full_text = "".join(accumulated)
     sources = extract_cited_sources(full_text)

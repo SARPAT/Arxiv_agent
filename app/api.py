@@ -11,9 +11,11 @@ import uuid
 from collections.abc import Iterator
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
+from app.config import settings
 from app.session import append_turn, get_history
 from rag.pipeline import run_pipeline_stream
 
@@ -33,6 +35,21 @@ logging.basicConfig(
 
 app = FastAPI()
 
+# The frontend (a Hugging Face Space) runs on a different origin than this
+# API, so browser requests to /chat need CORS allowed explicitly. The
+# origin comes from an env var, not a hardcoded value, because it isn't
+# known until that Space exists - and stays configurable afterward without
+# a code change if the Space's URL ever changes. Left unconfigured
+# (CORS_ALLOWED_ORIGIN unset), no cross-origin access is granted at all,
+# rather than defaulting to "allow everything."
+if settings.cors_allowed_origin:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=[settings.cors_allowed_origin],
+        allow_methods=["GET", "POST"],
+        allow_headers=["*"],
+    )
+
 
 class ChatRequest(BaseModel):
     session_id: str = ""
@@ -49,7 +66,12 @@ def _format_sse(event: str, data: dict) -> str:
 def _stream_chat(session_id: str, message: str) -> Iterator[str]:
     """Drive one ``/chat`` request: yield SSE frames as the pipeline
     streams tokens, then record the finished turn in session history and
-    yield the closing ``done`` frame."""
+    yield the closing ``done`` frame.
+
+    A generation failure (see ``rag/pipeline.py``'s "error" event) yields
+    an ``error`` frame instead of ``done`` and returns without ever calling
+    ``append_turn`` — an incomplete or failed exchange has no complete
+    answer to persist, and shouldn't show up as one in future history."""
     history = get_history(session_id)
     accumulated = []
 
@@ -66,6 +88,10 @@ def _stream_chat(session_id: str, message: str) -> Iterator[str]:
                     "abstained": event["abstained"],
                     "session_id": session_id,
                 },
+            )
+        elif event["type"] == "error":
+            yield _format_sse(
+                "error", {"message": event["message"], "session_id": session_id}
             )
 
 

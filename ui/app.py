@@ -37,7 +37,16 @@ def _parse_sse_stream(response: httpx.Response):
 def chat_fn(message: str, chat_history: list[dict], session_id: str):
     """Gradio submit handler: streams tokens into the chat bubble as they
     arrive, then attaches sources and adopts the session id the backend
-    returns once its ``done`` event lands."""
+    returns once its ``done`` event lands.
+
+    An ``error`` event (generation failed, either before any tokens were
+    sent or partway through) appends the backend's message to whatever
+    content the bubble already has - empty, if the failure was before the
+    first token - and still adopts ``session_id`` from it, so a failure on
+    the very first message of a session doesn't leave the frontend without
+    one. Either ``done`` or ``error`` ends the generator normally, so the
+    UI never hangs waiting for a frame that isn't coming.
+    """
     chat_history = chat_history + [
         {"role": "user", "content": message},
         {"role": "assistant", "content": ""},
@@ -61,6 +70,11 @@ def chat_fn(message: str, chat_history: list[dict], session_id: str):
                         f"- {source}" for source in data["sources"]
                     )
                     chat_history[-1]["content"] = answer
+                session_id = data["session_id"]
+                yield chat_history, session_id
+            elif event_name == "error":
+                answer += f"\n\n{data['message']}" if answer else data["message"]
+                chat_history[-1]["content"] = answer
                 session_id = data["session_id"]
                 yield chat_history, session_id
 
