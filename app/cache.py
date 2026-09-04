@@ -9,7 +9,7 @@ the model, or a fresh FAISS search) rather than raising, so a cache
 outage only removes the speed benefit for that one call, never changes
 the answer or fails the request.
 
-Both cache keys include ``settings.embedding_model``, the same
+Both cache keys include ``rag.embedder.cache_identifier()``, the same
 invalidation-on-change protection ``corpus_version`` already gives against
 document changes. This was found missing the hard way: after Checkpoint
 4f swapped the embedding runtime (sentence-transformers -> ONNX Runtime),
@@ -18,13 +18,15 @@ numbers because it was served stale cached embeddings/retrieval results
 computed before the swap - flushing the cache by hand produced the
 correct, different numbers.
 
-Caveat: this only invalidates on a *model name* change. Checkpoint 4f
-deliberately kept ``embedding_model`` as a logical name unchanged across
-the sentence-transformers -> ONNX switch (see ``rag/embedder.py``), so by
-itself this fix would not have caught that exact swap - only a change
-that also changes ``settings.embedding_model``'s string value. Closing
-that gap fully would need a second identifier that changes with the
-concrete embedding *pipeline/runtime*, not just the model name.
+This originally keyed on ``settings.embedding_model`` instead, which its
+own docstring flagged as an incomplete fix: that logical display name was
+(deliberately) left unchanged across the sentence-transformers -> ONNX
+swap, so it would not have caught that exact incident, and the same gap
+would recur for any future change confined to ``rag/embedder.py`` (e.g. a
+different ONNX quantization). ``cache_identifier()`` closes this by
+hashing that module's actual output-affecting config (the ONNX subpath
+and pooling method) instead of relying on a separately-maintained display
+string - see its docstring in ``rag/embedder.py``.
 
 This module knows nothing about ``rag/``'s ``Document`` type on purpose:
 callers pass and receive plain JSON-safe data (embedding vectors as
@@ -42,6 +44,7 @@ import redis
 
 from app.config import settings
 from app.json_utils import json_dumps_safe
+from rag.embedder import cache_identifier
 
 logger = logging.getLogger(__name__)
 
@@ -94,7 +97,7 @@ def get_corpus_version() -> int:
 def get_cached_embedding(query: str) -> list[float] | None:
     """Return the cached embedding vector for ``query``, or ``None`` on a
     cache miss or Redis error."""
-    key = f"embedding:{settings.embedding_model}:{_query_hash(query)}"
+    key = f"embedding:{cache_identifier()}:{_query_hash(query)}"
     try:
         raw = _client.get(key)
     except redis.exceptions.RedisError:
@@ -109,7 +112,7 @@ def get_cached_embedding(query: str) -> list[float] | None:
 
 def set_cached_embedding(query: str, vector: list[float]) -> None:
     """Write ``vector`` to the embedding cache for ``query``."""
-    key = f"embedding:{settings.embedding_model}:{_query_hash(query)}"
+    key = f"embedding:{cache_identifier()}:{_query_hash(query)}"
     try:
         _client.set(key, json_dumps_safe(vector), ex=EMBEDDING_TTL_SECONDS)
     except redis.exceptions.RedisError:
@@ -120,7 +123,7 @@ def get_cached_retrieval(query: str, corpus_version: int) -> dict | None:
     """Return the cached ``{"chunks": [...], "scores": [...]}`` retrieval
     result for ``query`` at ``corpus_version``, or ``None`` on a cache
     miss or Redis error."""
-    key = f"retrieval:{settings.embedding_model}:{corpus_version}:{_query_hash(query)}"
+    key = f"retrieval:{cache_identifier()}:{corpus_version}:{_query_hash(query)}"
     try:
         raw = _client.get(key)
     except redis.exceptions.RedisError:
@@ -138,7 +141,7 @@ def set_cached_retrieval(
 ) -> None:
     """Write a retrieval result for ``query`` at ``corpus_version`` to the
     retrieval cache."""
-    key = f"retrieval:{settings.embedding_model}:{corpus_version}:{_query_hash(query)}"
+    key = f"retrieval:{cache_identifier()}:{corpus_version}:{_query_hash(query)}"
     value = json_dumps_safe({"chunks": chunks, "scores": scores})
     try:
         _client.set(key, value, ex=RETRIEVAL_TTL_SECONDS)
@@ -177,12 +180,24 @@ if __name__ == "__main__":
 
     # A model/runtime swap must not silently serve a cache entry computed
     # by the old embedder - this exact protection was missing after
-    # Checkpoint 4f's sentence-transformers -> ONNX swap. Change
-    # settings.embedding_model between two calls with the same query text
-    # and confirm they land on different keys rather than colliding.
-    original_model = settings.embedding_model
+    # Checkpoint 4f's sentence-transformers -> ONNX swap. Cache keys now
+    # derive from rag.embedder.cache_identifier() rather than
+    # settings.embedding_model directly (that string is deliberately left
+    # unchanged across runtime swaps - see rag/embedder.py's docstring),
+    # so this exercises the actual invalidation path: patch this running
+    # module's own cache_identifier name (via sys.modules[__name__], not
+    # a fresh `import app.cache` - this script is already running *as*
+    # app.cache under the name __main__, so a second import would create
+    # a distinct module object with its own globals, silently patching a
+    # copy that get_cached_embedding()/etc. above never actually read
+    # from) to two values standing in for two different ONNX configs, and
+    # confirm they land on different keys rather than colliding.
+    import sys
+
+    this_module = sys.modules[__name__]
+    original_identifier = this_module.cache_identifier
     try:
-        settings.embedding_model = "model-a"
+        this_module.cache_identifier = lambda: "config-a"
         set_cached_embedding("shared query", [1.0, 2.0])
         set_cached_retrieval(
             "shared query",
@@ -191,24 +206,48 @@ if __name__ == "__main__":
             scores=[0.1],
         )
 
-        settings.embedding_model = "model-b"
+        this_module.cache_identifier = lambda: "config-b"
         assert get_cached_embedding("shared query") is None, (
-            "a different embedding_model must not see model-a's cached embedding"
+            "a different cache_identifier() must not see config-a's cached embedding"
         )
         assert get_cached_retrieval("shared query", corpus_version=1) is None, (
-            "a different embedding_model must not see model-a's cached retrieval"
+            "a different cache_identifier() must not see config-a's cached retrieval"
         )
         print(
-            "PASSED: changing settings.embedding_model changes the cache key - "
-            "no collision between different models/runtimes."
+            "PASSED: a different cache_identifier() changes the cache key - "
+            "no collision between different embedder configs."
         )
 
-        settings.embedding_model = "model-a"
+        this_module.cache_identifier = lambda: "config-a"
         assert get_cached_embedding("shared query") == [1.0, 2.0]
         assert get_cached_retrieval("shared query", corpus_version=1) is not None
         print(
-            "PASSED: switching back to the original embedding_model still finds "
+            "PASSED: switching back to the original cache_identifier() still finds "
             "its own cache entry."
         )
     finally:
-        settings.embedding_model = original_model
+        this_module.cache_identifier = original_identifier
+
+    # cache_identifier() itself must actually change when the embedder's
+    # output-affecting config changes (not just be swappable in a test) -
+    # exercise the real function against a patched rag.embedder module
+    # constant, the same kind of change (e.g. a different ONNX
+    # quantization) that motivated this fix.
+    import rag.embedder as embedder_module
+
+    baseline = embedder_module.cache_identifier()
+    original_subpath = embedder_module._ONNX_SUBPATH
+    try:
+        embedder_module._ONNX_SUBPATH = "onnx/model.onnx"  # different quantization
+        changed = embedder_module.cache_identifier()
+        assert changed != baseline, (
+            "cache_identifier() must change when _ONNX_SUBPATH changes"
+        )
+        assert changed.startswith(embedder_module._HF_REPO + ":"), changed
+        print(
+            "PASSED: cache_identifier() changes when the embedder's real ONNX "
+            "config changes, with no separate value to remember to update."
+        )
+    finally:
+        embedder_module._ONNX_SUBPATH = original_subpath
+    assert embedder_module.cache_identifier() == baseline
