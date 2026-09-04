@@ -38,14 +38,17 @@ class Settings(BaseSettings):
     generation_model: str = "nvidia/nemotron-3.5-lightning-30b-a3b"
     max_tokens: int = 512
 
-    # Calibrated by eval/calibrate_threshold.py against the real ONNX
-    # bge-small-en-v1.5 embedder (Checkpoint 4f), after flushing stale
-    # embedding:*/retrieval:* cache entries left over from the previous
-    # (sentence-transformers) embedder - see app/cache.py's model-keying
-    # fix for why those were stale in the first place. Full detail in
-    # eval/calibration_result.json: ROC-AUC 0.9314, sensitivity 0.78 at
-    # specificity 0.9286 (target was specificity >= 0.90).
-    similarity_threshold: float = 0.420202
+    # Chosen from eval/calibrate_threshold.py's tradeoff curve (Checkpoint
+    # 4g, expanded 200-question golden set) at the 70% specificity target
+    # - full table in eval/calibration_curve.json. Not the strictest
+    # available target: the "unrelated" out-of-corpus category is already
+    # saturated at 100% specificity even at the loosest tested target, so
+    # raising the target further only trades away real-question
+    # sensitivity - especially on casually-phrased questions, which cap
+    # around 55-57% sensitivity regardless of target - in exchange for
+    # marginal protection against the softer "adjacent_uncovered"
+    # out-of-corpus category.
+    similarity_threshold: float = 0.500706
 
     retrieval_k: int = 4
     max_context_chars: int = 2500
