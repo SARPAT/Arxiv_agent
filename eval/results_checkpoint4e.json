@@ -1,0 +1,1374 @@
+{
+  "in_corpus": [
+    {
+      "id": "attention_1",
+      "question": "What is the main architecture proposed in \"Attention Is All You Need,\" and how does it differ from previous sequence transduction models?",
+      "category": "in_corpus",
+      "expected_paper_keys": [
+        "attention"
+      ],
+      "retrieved_paper_keys": [
+        "attention",
+        "attention",
+        "attention",
+        "attention",
+        "attention",
+        "attention",
+        "attention",
+        "attention"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0,
+      "top1_score": 0.2922402322292328,
+      "abstained": false,
+      "context_survived_top_chunk": true
+    },
+    {
+      "id": "attention_2",
+      "question": "What is scaled dot-product attention, and why is the scaling factor of 1/sqrt(d_k) used?",
+      "category": "in_corpus",
+      "expected_paper_keys": [
+        "attention"
+      ],
+      "retrieved_paper_keys": [
+        "attention",
+        "attention",
+        "attention",
+        "attention",
+        "attention",
+        "attention",
+        "attention",
+        "attention"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0,
+      "top1_score": 0.31193220615386963,
+      "abstained": false,
+      "context_survived_top_chunk": true
+    },
+    {
+      "id": "attention_3",
+      "question": "What is multi-head attention, and why does the paper use multiple attention heads instead of a single attention function?",
+      "category": "in_corpus",
+      "expected_paper_keys": [
+        "attention"
+      ],
+      "retrieved_paper_keys": [
+        "attention",
+        "attention",
+        "attention",
+        "attention",
+        "attention",
+        "attention",
+        "attention",
+        "judge"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0,
+      "top1_score": 0.424429327249527,
+      "abstained": false,
+      "context_survived_top_chunk": true
+    },
+    {
+      "id": "attention_4",
+      "question": "How does the Transformer model handle positional information given that it contains no recurrence or convolution?",
+      "category": "in_corpus",
+      "expected_paper_keys": [
+        "attention"
+      ],
+      "retrieved_paper_keys": [
+        "attention",
+        "attention",
+        "attention",
+        "attention",
+        "attention",
+        "attention",
+        "bert",
+        "attention"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0,
+      "top1_score": 0.4333173632621765,
+      "abstained": true,
+      "context_survived_top_chunk": null
+    },
+    {
+      "id": "attention_5",
+      "question": "What are the three types of attention layers used in the Transformer, and where is each applied?",
+      "category": "in_corpus",
+      "expected_paper_keys": [
+        "attention"
+      ],
+      "retrieved_paper_keys": [
+        "attention",
+        "attention",
+        "attention",
+        "attention",
+        "attention",
+        "attention",
+        "attention",
+        "attention"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0,
+      "top1_score": 0.45154792070388794,
+      "abstained": true,
+      "context_survived_top_chunk": null
+    },
+    {
+      "id": "attention_6",
+      "question": "What BLEU scores are reported for the base and big Transformer models on the WMT 2014 English-to-German translation task?",
+      "category": "in_corpus",
+      "expected_paper_keys": [
+        "attention"
+      ],
+      "retrieved_paper_keys": [
+        "attention",
+        "attention",
+        "attention",
+        "attention",
+        "attention",
+        "attention",
+        "bert",
+        "attention"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0,
+      "top1_score": 0.21767978370189667,
+      "abstained": false,
+      "context_survived_top_chunk": true
+    },
+    {
+      "id": "attention_7",
+      "question": "What is the computational complexity advantage of self-attention layers compared to recurrent layers, per the paper's analysis?",
+      "category": "in_corpus",
+      "expected_paper_keys": [
+        "attention"
+      ],
+      "retrieved_paper_keys": [
+        "attention",
+        "attention",
+        "attention",
+        "attention",
+        "attention",
+        "attention",
+        "attention",
+        "attention"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0,
+      "top1_score": 0.31059399247169495,
+      "abstained": false,
+      "context_survived_top_chunk": true
+    },
+    {
+      "id": "bert_1",
+      "question": "What is BERT and how does it differ from previous language representation models like GPT and ELMo?",
+      "category": "in_corpus",
+      "expected_paper_keys": [
+        "bert"
+      ],
+      "retrieved_paper_keys": [
+        "bert",
+        "bert",
+        "bert",
+        "bert",
+        "bert",
+        "bert",
+        "bert",
+        "bert"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0,
+      "top1_score": 0.301255464553833,
+      "abstained": false,
+      "context_survived_top_chunk": true
+    },
+    {
+      "id": "bert_2",
+      "question": "What are the two unsupervised pre-training tasks used to train BERT?",
+      "category": "in_corpus",
+      "expected_paper_keys": [
+        "bert"
+      ],
+      "retrieved_paper_keys": [
+        "bert",
+        "bert",
+        "bert",
+        "bert",
+        "bert",
+        "bert",
+        "bert",
+        "bert"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0,
+      "top1_score": 0.29630109667778015,
+      "abstained": false,
+      "context_survived_top_chunk": true
+    },
+    {
+      "id": "bert_3",
+      "question": "What is the Masked Language Model (MLM) objective, and what percentage of tokens are masked during pre-training?",
+      "category": "in_corpus",
+      "expected_paper_keys": [
+        "bert"
+      ],
+      "retrieved_paper_keys": [
+        "bert",
+        "bert",
+        "bert",
+        "bert",
+        "bert",
+        "bert",
+        "bert",
+        "attention"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0,
+      "top1_score": 0.398070365190506,
+      "abstained": false,
+      "context_survived_top_chunk": true
+    },
+    {
+      "id": "bert_4",
+      "question": "What is the Next Sentence Prediction (NSP) task, and what purpose does it serve?",
+      "category": "in_corpus",
+      "expected_paper_keys": [
+        "bert"
+      ],
+      "retrieved_paper_keys": [
+        "bert",
+        "bert",
+        "bert",
+        "rag_paper",
+        "rag_paper",
+        "bert",
+        "bert",
+        "survey"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0,
+      "top1_score": 0.2880716025829315,
+      "abstained": false,
+      "context_survived_top_chunk": true
+    },
+    {
+      "id": "bert_5",
+      "question": "What are the two model sizes released for BERT (BERT-base and BERT-large), and what are their layer/hidden/head configurations?",
+      "category": "in_corpus",
+      "expected_paper_keys": [
+        "bert"
+      ],
+      "retrieved_paper_keys": [
+        "bert",
+        "bert",
+        "bert",
+        "bert",
+        "bert",
+        "bert",
+        "bert",
+        "bert"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0,
+      "top1_score": 0.3267884850502014,
+      "abstained": false,
+      "context_survived_top_chunk": true
+    },
+    {
+      "id": "bert_6",
+      "question": "How does BERT achieve state-of-the-art results on the GLUE benchmark?",
+      "category": "in_corpus",
+      "expected_paper_keys": [
+        "bert"
+      ],
+      "retrieved_paper_keys": [
+        "bert",
+        "bert",
+        "bert",
+        "bert",
+        "bert",
+        "bert",
+        "bert",
+        "bert"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0,
+      "top1_score": 0.26901963353157043,
+      "abstained": false,
+      "context_survived_top_chunk": true
+    },
+    {
+      "id": "bert_7",
+      "question": "What is the [CLS] token used for in BERT's input representation?",
+      "category": "in_corpus",
+      "expected_paper_keys": [
+        "bert"
+      ],
+      "retrieved_paper_keys": [
+        "bert",
+        "bert",
+        "bert",
+        "bert",
+        "bert",
+        "bert",
+        "bert",
+        "bert"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0,
+      "top1_score": 0.36375248432159424,
+      "abstained": false,
+      "context_survived_top_chunk": true
+    },
+    {
+      "id": "rag_paper_1",
+      "question": "What problem does Retrieval-Augmented Generation (RAG) aim to solve compared to purely parametric language models?",
+      "category": "in_corpus",
+      "expected_paper_keys": [
+        "rag_paper"
+      ],
+      "retrieved_paper_keys": [
+        "survey",
+        "survey",
+        "rag_paper",
+        "survey",
+        "rag_paper",
+        "survey",
+        "survey",
+        "survey"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 0.3333333333333333,
+      "top1_score": 0.12872210144996643,
+      "abstained": false,
+      "context_survived_top_chunk": true
+    },
+    {
+      "id": "rag_paper_2",
+      "question": "What are the two RAG model variants proposed in the paper (RAG-Sequence vs RAG-Token)?",
+      "category": "in_corpus",
+      "expected_paper_keys": [
+        "rag_paper"
+      ],
+      "retrieved_paper_keys": [
+        "rag_paper",
+        "survey",
+        "survey",
+        "rag_paper",
+        "rag_paper",
+        "rag_paper",
+        "survey",
+        "rag_paper"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0,
+      "top1_score": 0.300098180770874,
+      "abstained": false,
+      "context_survived_top_chunk": true
+    },
+    {
+      "id": "rag_paper_3",
+      "question": "What retriever is used in the RAG paper, and how is it pre-trained?",
+      "category": "in_corpus",
+      "expected_paper_keys": [
+        "rag_paper"
+      ],
+      "retrieved_paper_keys": [
+        "survey",
+        "rag_paper",
+        "survey",
+        "rag_paper",
+        "rag_paper",
+        "rag_paper",
+        "survey",
+        "survey"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 0.5,
+      "top1_score": 0.5516102910041809,
+      "abstained": true,
+      "context_survived_top_chunk": null
+    },
+    {
+      "id": "rag_paper_4",
+      "question": "What non-parametric memory does RAG use for retrieval?",
+      "category": "in_corpus",
+      "expected_paper_keys": [
+        "rag_paper"
+      ],
+      "retrieved_paper_keys": [
+        "survey",
+        "rag_paper",
+        "rag_paper",
+        "rag_paper",
+        "survey",
+        "rag_paper",
+        "rag_paper",
+        "survey"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 0.5,
+      "top1_score": 0.3142559230327606,
+      "abstained": false,
+      "context_survived_top_chunk": true
+    },
+    {
+      "id": "rag_paper_5",
+      "question": "How does RAG combine the retriever and generator during end-to-end training?",
+      "category": "in_corpus",
+      "expected_paper_keys": [
+        "rag_paper"
+      ],
+      "retrieved_paper_keys": [
+        "survey",
+        "rag_paper",
+        "survey",
+        "survey",
+        "rag_paper",
+        "rag_paper",
+        "survey",
+        "survey"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 0.5,
+      "top1_score": 0.4155130386352539,
+      "abstained": false,
+      "context_survived_top_chunk": true
+    },
+    {
+      "id": "rag_paper_6",
+      "question": "On which tasks was RAG evaluated, and how did it perform compared to purely extractive or closed-book approaches?",
+      "category": "in_corpus",
+      "expected_paper_keys": [
+        "rag_paper"
+      ],
+      "retrieved_paper_keys": [
+        "survey",
+        "rag_paper",
+        "survey",
+        "survey",
+        "survey",
+        "survey",
+        "survey",
+        "survey"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 0.5,
+      "top1_score": 0.39344602823257446,
+      "abstained": false,
+      "context_survived_top_chunk": true
+    },
+    {
+      "id": "rag_paper_7",
+      "question": "How does RAG handle the marginalization over retrieved documents during generation?",
+      "category": "in_corpus",
+      "expected_paper_keys": [
+        "rag_paper"
+      ],
+      "retrieved_paper_keys": [
+        "rag_paper",
+        "survey",
+        "survey",
+        "rag_paper",
+        "survey",
+        "survey",
+        "rag_paper",
+        "survey"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0,
+      "top1_score": 0.4239054322242737,
+      "abstained": false,
+      "context_survived_top_chunk": true
+    },
+    {
+      "id": "mrkl_1",
+      "question": "What does MRKL stand for, and what is the core idea behind MRKL Systems?",
+      "category": "in_corpus",
+      "expected_paper_keys": [
+        "mrkl"
+      ],
+      "retrieved_paper_keys": [
+        "mrkl",
+        "mrkl",
+        "mrkl",
+        "mrkl",
+        "mrkl",
+        "mrkl",
+        "mrkl",
+        "mrkl"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0,
+      "top1_score": 0.4158218502998352,
+      "abstained": false,
+      "context_survived_top_chunk": true
+    },
+    {
+      "id": "mrkl_2",
+      "question": "What problem with large language models does the MRKL paper primarily address, such as arithmetic or reasoning failures?",
+      "category": "in_corpus",
+      "expected_paper_keys": [
+        "mrkl"
+      ],
+      "retrieved_paper_keys": [
+        "mrkl",
+        "mrkl",
+        "mrkl",
+        "mrkl",
+        "mrkl",
+        "mrkl",
+        "mrkl",
+        "mrkl"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0,
+      "top1_score": 0.36914265155792236,
+      "abstained": false,
+      "context_survived_top_chunk": true
+    },
+    {
+      "id": "mrkl_3",
+      "question": "How does the MRKL architecture route a query to different expert modules?",
+      "category": "in_corpus",
+      "expected_paper_keys": [
+        "mrkl"
+      ],
+      "retrieved_paper_keys": [
+        "mrkl",
+        "mrkl",
+        "mrkl",
+        "mrkl",
+        "mrkl",
+        "mrkl",
+        "survey",
+        "judge"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0,
+      "top1_score": 0.37480729818344116,
+      "abstained": false,
+      "context_survived_top_chunk": true
+    },
+    {
+      "id": "mrkl_4",
+      "question": "What role does the large language model play in a MRKL system beyond being the sole source of knowledge?",
+      "category": "in_corpus",
+      "expected_paper_keys": [
+        "mrkl"
+      ],
+      "retrieved_paper_keys": [
+        "mrkl",
+        "mrkl",
+        "mrkl",
+        "mrkl",
+        "survey",
+        "mrkl",
+        "rag_paper",
+        "mrkl"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0,
+      "top1_score": 0.19389575719833374,
+      "abstained": false,
+      "context_survived_top_chunk": true
+    },
+    {
+      "id": "mrkl_5",
+      "question": "What kinds of external modules or tools does the MRKL paper propose integrating with the LLM router?",
+      "category": "in_corpus",
+      "expected_paper_keys": [
+        "mrkl"
+      ],
+      "retrieved_paper_keys": [
+        "mrkl",
+        "mrkl",
+        "mrkl",
+        "mrkl",
+        "mrkl",
+        "mrkl",
+        "mrkl",
+        "mrkl"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0,
+      "top1_score": 0.5123026371002197,
+      "abstained": true,
+      "context_survived_top_chunk": null
+    },
+    {
+      "id": "mrkl_6",
+      "question": "What experiments does the paper use to demonstrate the limitations of pure LLMs on arithmetic tasks?",
+      "category": "in_corpus",
+      "expected_paper_keys": [
+        "mrkl"
+      ],
+      "retrieved_paper_keys": [
+        "mrkl",
+        "mrkl",
+        "mrkl",
+        "judge",
+        "mrkl",
+        "mrkl",
+        "mrkl",
+        "judge"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0,
+      "top1_score": 0.42417484521865845,
+      "abstained": false,
+      "context_survived_top_chunk": true
+    },
+    {
+      "id": "mrkl_7",
+      "question": "How does MRKL relate to the broader idea of combining neural networks with symbolic or external systems?",
+      "category": "in_corpus",
+      "expected_paper_keys": [
+        "mrkl"
+      ],
+      "retrieved_paper_keys": [
+        "mrkl",
+        "mrkl",
+        "mrkl",
+        "mrkl",
+        "mrkl",
+        "mrkl",
+        "mrkl",
+        "mrkl"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0,
+      "top1_score": 0.25959211587905884,
+      "abstained": false,
+      "context_survived_top_chunk": true
+    },
+    {
+      "id": "mistral7b_1",
+      "question": "What is Mistral 7B, and how does it compare in performance to Llama 2 13B and Llama 1 34B?",
+      "category": "in_corpus",
+      "expected_paper_keys": [
+        "mistral7b"
+      ],
+      "retrieved_paper_keys": [
+        "mistral7b",
+        "mistral7b",
+        "mistral7b",
+        "mistral7b",
+        "mistral7b",
+        "mistral7b",
+        "mistral7b",
+        "mistral7b"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0,
+      "top1_score": 0.26805126667022705,
+      "abstained": false,
+      "context_survived_top_chunk": true
+    },
+    {
+      "id": "mistral7b_2",
+      "question": "What attention mechanism does Mistral 7B use to improve inference efficiency?",
+      "category": "in_corpus",
+      "expected_paper_keys": [
+        "mistral7b"
+      ],
+      "retrieved_paper_keys": [
+        "mistral7b",
+        "mistral7b",
+        "mistral7b",
+        "mistral7b",
+        "mistral7b",
+        "mistral7b",
+        "mistral7b",
+        "mistral7b"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0,
+      "top1_score": 0.2937171161174774,
+      "abstained": false,
+      "context_survived_top_chunk": true
+    },
+    {
+      "id": "mistral7b_3",
+      "question": "What is sliding window attention, and how does it help Mistral 7B handle longer sequences efficiently?",
+      "category": "in_corpus",
+      "expected_paper_keys": [
+        "mistral7b"
+      ],
+      "retrieved_paper_keys": [
+        "mistral7b",
+        "mistral7b",
+        "mistral7b",
+        "mistral7b",
+        "attention",
+        "mistral7b",
+        "mistral7b",
+        "mistral7b"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0,
+      "top1_score": 0.35775431990623474,
+      "abstained": false,
+      "context_survived_top_chunk": true
+    },
+    {
+      "id": "mistral7b_4",
+      "question": "What is Grouped-Query Attention (GQA), and why is it used in Mistral 7B?",
+      "category": "in_corpus",
+      "expected_paper_keys": [
+        "mistral7b"
+      ],
+      "retrieved_paper_keys": [
+        "mistral7b",
+        "mistral7b",
+        "mistral7b",
+        "mistral7b",
+        "mistral7b",
+        "attention",
+        "mistral7b",
+        "attention"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0,
+      "top1_score": 0.3122078776359558,
+      "abstained": false,
+      "context_survived_top_chunk": true
+    },
+    {
+      "id": "mistral7b_5",
+      "question": "What is the rolling buffer cache, and how does it reduce memory usage during inference?",
+      "category": "in_corpus",
+      "expected_paper_keys": [
+        "mistral7b"
+      ],
+      "retrieved_paper_keys": [
+        "mistral7b",
+        "mistral7b",
+        "mistral7b",
+        "mistral7b",
+        "rag_paper",
+        "rag_paper",
+        "rag_paper",
+        "rag_paper"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0,
+      "top1_score": 0.40794169902801514,
+      "abstained": false,
+      "context_survived_top_chunk": true
+    },
+    {
+      "id": "mistral7b_6",
+      "question": "What fine-tuned variant of Mistral 7B is introduced for instruction-following, and how does it perform relative to Llama 2 13B chat?",
+      "category": "in_corpus",
+      "expected_paper_keys": [
+        "mistral7b"
+      ],
+      "retrieved_paper_keys": [
+        "mistral7b",
+        "mistral7b",
+        "mistral7b",
+        "mistral7b",
+        "mistral7b",
+        "mistral7b",
+        "mistral7b",
+        "mistral7b"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0,
+      "top1_score": 0.2721993625164032,
+      "abstained": false,
+      "context_survived_top_chunk": true
+    },
+    {
+      "id": "mistral7b_7",
+      "question": "What benchmarks were used to evaluate Mistral 7B, and in which categories does it particularly excel?",
+      "category": "in_corpus",
+      "expected_paper_keys": [
+        "mistral7b"
+      ],
+      "retrieved_paper_keys": [
+        "mistral7b",
+        "mistral7b",
+        "mistral7b",
+        "mistral7b",
+        "mistral7b",
+        "mistral7b",
+        "mistral7b",
+        "mistral7b"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0,
+      "top1_score": 0.3437640070915222,
+      "abstained": false,
+      "context_survived_top_chunk": true
+    },
+    {
+      "id": "judge_1",
+      "question": "What is the central question explored in \"Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena\"?",
+      "category": "in_corpus",
+      "expected_paper_keys": [
+        "judge"
+      ],
+      "retrieved_paper_keys": [
+        "judge",
+        "judge",
+        "judge",
+        "judge",
+        "judge",
+        "judge",
+        "judge",
+        "judge"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0,
+      "top1_score": 0.1793927550315857,
+      "abstained": false,
+      "context_survived_top_chunk": true
+    },
+    {
+      "id": "judge_2",
+      "question": "What is MT-Bench, and what does it evaluate?",
+      "category": "in_corpus",
+      "expected_paper_keys": [
+        "judge"
+      ],
+      "retrieved_paper_keys": [
+        "judge",
+        "judge",
+        "judge",
+        "judge",
+        "judge",
+        "judge",
+        "judge",
+        "judge"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0,
+      "top1_score": 0.4800407588481903,
+      "abstained": true,
+      "context_survived_top_chunk": null
+    },
+    {
+      "id": "judge_3",
+      "question": "What is Chatbot Arena, and how does it collect human preference data?",
+      "category": "in_corpus",
+      "expected_paper_keys": [
+        "judge"
+      ],
+      "retrieved_paper_keys": [
+        "judge",
+        "judge",
+        "judge",
+        "judge",
+        "judge",
+        "judge",
+        "judge",
+        "judge"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0,
+      "top1_score": 0.2788044214248657,
+      "abstained": false,
+      "context_survived_top_chunk": true
+    },
+    {
+      "id": "judge_4",
+      "question": "What biases does the paper identify in LLM judges, such as position bias, verbosity bias, or self-enhancement bias?",
+      "category": "in_corpus",
+      "expected_paper_keys": [
+        "judge"
+      ],
+      "retrieved_paper_keys": [
+        "judge",
+        "judge",
+        "judge",
+        "judge",
+        "judge",
+        "judge",
+        "judge",
+        "judge"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0,
+      "top1_score": 0.38434314727783203,
+      "abstained": false,
+      "context_survived_top_chunk": true
+    },
+    {
+      "id": "judge_5",
+      "question": "How well did GPT-4 as a judge agree with human preferences, according to the paper's findings?",
+      "category": "in_corpus",
+      "expected_paper_keys": [
+        "judge"
+      ],
+      "retrieved_paper_keys": [
+        "judge",
+        "judge",
+        "judge",
+        "judge",
+        "judge",
+        "judge",
+        "judge",
+        "judge"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0,
+      "top1_score": 0.3893829584121704,
+      "abstained": false,
+      "context_survived_top_chunk": true
+    },
+    {
+      "id": "judge_6",
+      "question": "What methods does the paper propose to mitigate biases in LLM-as-a-judge evaluations?",
+      "category": "in_corpus",
+      "expected_paper_keys": [
+        "judge"
+      ],
+      "retrieved_paper_keys": [
+        "judge",
+        "judge",
+        "judge",
+        "judge",
+        "judge",
+        "judge",
+        "judge",
+        "judge"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0,
+      "top1_score": 0.2339828610420227,
+      "abstained": false,
+      "context_survived_top_chunk": true
+    },
+    {
+      "id": "judge_7",
+      "question": "What limitations of using LLM judges are identified in the paper?",
+      "category": "in_corpus",
+      "expected_paper_keys": [
+        "judge"
+      ],
+      "retrieved_paper_keys": [
+        "judge",
+        "judge",
+        "judge",
+        "judge",
+        "judge",
+        "judge",
+        "judge",
+        "judge"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0,
+      "top1_score": 0.4961802065372467,
+      "abstained": true,
+      "context_survived_top_chunk": null
+    },
+    {
+      "id": "survey_1",
+      "question": "What are the three main paradigms of RAG identified in the survey (Naive RAG, Advanced RAG, Modular RAG)?",
+      "category": "in_corpus",
+      "expected_paper_keys": [
+        "survey"
+      ],
+      "retrieved_paper_keys": [
+        "survey",
+        "survey",
+        "survey",
+        "survey",
+        "survey",
+        "survey",
+        "survey",
+        "survey"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0,
+      "top1_score": 0.3491683006286621,
+      "abstained": false,
+      "context_survived_top_chunk": true
+    },
+    {
+      "id": "survey_2",
+      "question": "What are the main components of a typical RAG pipeline described in the survey?",
+      "category": "in_corpus",
+      "expected_paper_keys": [
+        "survey"
+      ],
+      "retrieved_paper_keys": [
+        "survey",
+        "survey",
+        "survey",
+        "survey",
+        "survey",
+        "survey",
+        "survey",
+        "survey"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0,
+      "top1_score": 0.6135209202766418,
+      "abstained": true,
+      "context_survived_top_chunk": null
+    },
+    {
+      "id": "survey_3",
+      "question": "What retrieval augmentation techniques are discussed for improving retrieval quality, such as query rewriting or re-ranking?",
+      "category": "in_corpus",
+      "expected_paper_keys": [
+        "survey"
+      ],
+      "retrieved_paper_keys": [
+        "survey",
+        "survey",
+        "survey",
+        "survey",
+        "rag_paper",
+        "survey",
+        "survey",
+        "survey"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0,
+      "top1_score": 0.3728674054145813,
+      "abstained": false,
+      "context_survived_top_chunk": true
+    },
+    {
+      "id": "survey_4",
+      "question": "What evaluation frameworks and benchmarks does the survey discuss for assessing RAG systems?",
+      "category": "in_corpus",
+      "expected_paper_keys": [
+        "survey"
+      ],
+      "retrieved_paper_keys": [
+        "survey",
+        "survey",
+        "survey",
+        "survey",
+        "survey",
+        "survey",
+        "survey",
+        "survey"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0,
+      "top1_score": 0.2806888222694397,
+      "abstained": false,
+      "context_survived_top_chunk": true
+    },
+    {
+      "id": "survey_5",
+      "question": "What are the key challenges facing RAG systems identified by the survey, such as long context or robustness?",
+      "category": "in_corpus",
+      "expected_paper_keys": [
+        "survey"
+      ],
+      "retrieved_paper_keys": [
+        "survey",
+        "survey",
+        "survey",
+        "survey",
+        "survey",
+        "survey",
+        "survey",
+        "survey"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0,
+      "top1_score": 0.31995436549186707,
+      "abstained": false,
+      "context_survived_top_chunk": true
+    },
+    {
+      "id": "survey_6",
+      "question": "How does the survey categorize the augmentation stages into pre-retrieval, retrieval, and post-retrieval?",
+      "category": "in_corpus",
+      "expected_paper_keys": [
+        "survey"
+      ],
+      "retrieved_paper_keys": [
+        "survey",
+        "survey",
+        "survey",
+        "survey",
+        "survey",
+        "survey",
+        "survey",
+        "survey"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0,
+      "top1_score": 0.38325974345207214,
+      "abstained": false,
+      "context_survived_top_chunk": true
+    },
+    {
+      "id": "survey_7",
+      "question": "What future research directions does the survey propose for RAG?",
+      "category": "in_corpus",
+      "expected_paper_keys": [
+        "survey"
+      ],
+      "retrieved_paper_keys": [
+        "survey",
+        "survey",
+        "survey",
+        "survey",
+        "survey",
+        "survey",
+        "survey",
+        "survey"
+      ],
+      "hit_at_5": true,
+      "hit_at_8": true,
+      "reciprocal_rank": 1.0,
+      "top1_score": 0.49334588646888733,
+      "abstained": true,
+      "context_survived_top_chunk": null
+    },
+    {
+      "id": "meta_1",
+      "question": "How many papers are indexed in this knowledge base, and what is the topic of each one?",
+      "category": "in_corpus",
+      "expected_paper_keys": [
+        "meta"
+      ],
+      "retrieved_paper_keys": [
+        "survey",
+        "rag_paper",
+        "survey",
+        "survey",
+        "survey",
+        "survey",
+        "survey",
+        "survey"
+      ],
+      "hit_at_5": false,
+      "hit_at_8": false,
+      "reciprocal_rank": 0.0,
+      "top1_score": 0.6867912411689758,
+      "abstained": true,
+      "context_survived_top_chunk": null
+    }
+  ],
+  "out_of_corpus": [
+    {
+      "id": "unrelated_1",
+      "question": "What is the boiling point of water at sea level?",
+      "category": "out_of_corpus",
+      "subtype": "unrelated",
+      "top1_score": 0.9293466806411743,
+      "abstained": true,
+      "response": "I don't have information on that in my corpus.\n\nSources: none",
+      "sources_block": "",
+      "context_survived_top_chunk": null,
+      "false_accept": false
+    },
+    {
+      "id": "unrelated_2",
+      "question": "Who wrote the novel \"Pride and Prejudice\"?",
+      "category": "out_of_corpus",
+      "subtype": "unrelated",
+      "top1_score": 0.9014215469360352,
+      "abstained": true,
+      "response": "I don't have information on that in my corpus.\n\nSources: none",
+      "sources_block": "",
+      "context_survived_top_chunk": null,
+      "false_accept": false
+    },
+    {
+      "id": "unrelated_3",
+      "question": "What year did the French Revolution begin?",
+      "category": "out_of_corpus",
+      "subtype": "unrelated",
+      "top1_score": 1.0310369729995728,
+      "abstained": true,
+      "response": "I don't have information on that in my corpus.\n\nSources: none",
+      "sources_block": "",
+      "context_survived_top_chunk": null,
+      "false_accept": false
+    },
+    {
+      "id": "unrelated_4",
+      "question": "What is the chemical formula for table salt?",
+      "category": "out_of_corpus",
+      "subtype": "unrelated",
+      "top1_score": 0.7642083168029785,
+      "abstained": true,
+      "response": "I don't have information on that in my corpus.\n\nSources: none",
+      "sources_block": "",
+      "context_survived_top_chunk": null,
+      "false_accept": false
+    },
+    {
+      "id": "unrelated_5",
+      "question": "How many continents are there on Earth?",
+      "category": "out_of_corpus",
+      "subtype": "unrelated",
+      "top1_score": 1.0023343563079834,
+      "abstained": true,
+      "response": "I don't have information on that in my corpus.\n\nSources: none",
+      "sources_block": "",
+      "context_survived_top_chunk": null,
+      "false_accept": false
+    },
+    {
+      "id": "unrelated_6",
+      "question": "What is the capital city of Australia?",
+      "category": "out_of_corpus",
+      "subtype": "unrelated",
+      "top1_score": 1.0744585990905762,
+      "abstained": true,
+      "response": "I don't have information on that in my corpus.\n\nSources: none",
+      "sources_block": "",
+      "context_survived_top_chunk": null,
+      "false_accept": false
+    },
+    {
+      "id": "adjacent_1",
+      "question": "What is the diffusion model architecture used in Stable Diffusion?",
+      "category": "out_of_corpus",
+      "subtype": "adjacent",
+      "top1_score": 0.5538322329521179,
+      "abstained": true,
+      "response": "I don't have information on that in my corpus.\n\nSources: none",
+      "sources_block": "",
+      "context_survived_top_chunk": null,
+      "false_accept": false
+    },
+    {
+      "id": "adjacent_2",
+      "question": "How does the AlphaFold model predict protein structures?",
+      "category": "out_of_corpus",
+      "subtype": "adjacent",
+      "top1_score": 0.6277570724487305,
+      "abstained": true,
+      "response": "I don't have information on that in my corpus.\n\nSources: none",
+      "sources_block": "",
+      "context_survived_top_chunk": null,
+      "false_accept": false
+    },
+    {
+      "id": "adjacent_3",
+      "question": "What is Reinforcement Learning from Human Feedback (RLHF), and how was it used to train InstructGPT?",
+      "category": "out_of_corpus",
+      "subtype": "adjacent",
+      "top1_score": 0.4159739017486572,
+      "abstained": false,
+      "response": "Reinforcement Learning from Human Feedback (RLHF) is a training framework that combines human preference data with reinforcement learning to align language models with human values. In the case of InstructGPT, RLHF was used to train the model to follow instructions more effectively by modeling human preferences over model outputs, resulting in responses that are more helpful, accurate, and aligned with user intent. The process typically involves three stages: supervised fine-tuning on demonstration data, reward modeling from human preference judgments, and policy optimization using proximal policy optimization (PPO) to maximize the reward model's scores.\n\nSources:\n- Retrieval-Augmented Generation for Large Language Models: A Survey",
+      "sources_block": "- Retrieval-Augmented Generation for Large Language Models: A Survey",
+      "context_survived_top_chunk": true,
+      "false_accept": true
+    },
+    {
+      "id": "adjacent_4",
+      "question": "What is LoRA (Low-Rank Adaptation), and how does it enable efficient fine-tuning of large models?",
+      "category": "out_of_corpus",
+      "subtype": "adjacent",
+      "top1_score": 0.46462780237197876,
+      "abstained": true,
+      "response": "I don't have information on that in my corpus.\n\nSources: none",
+      "sources_block": "",
+      "context_survived_top_chunk": null,
+      "false_accept": false
+    },
+    {
+      "id": "adjacent_5",
+      "question": "What is the CLIP model, and how does it learn joint image-text representations?",
+      "category": "out_of_corpus",
+      "subtype": "adjacent",
+      "top1_score": 0.43538010120391846,
+      "abstained": true,
+      "response": "I don't have information on that in my corpus.\n\nSources: none",
+      "sources_block": "",
+      "context_survived_top_chunk": null,
+      "false_accept": false
+    },
+    {
+      "id": "adjacent_6",
+      "question": "What is quantization-aware training, and how does it reduce model size for deployment?",
+      "category": "out_of_corpus",
+      "subtype": "adjacent",
+      "top1_score": 0.48656150698661804,
+      "abstained": true,
+      "response": "I don't have information on that in my corpus.\n\nSources: none",
+      "sources_block": "",
+      "context_survived_top_chunk": null,
+      "false_accept": false
+    },
+    {
+      "id": "adjacent_7",
+      "question": "What is the Mixture-of-Experts (MoE) architecture used in models like Switch Transformer?",
+      "category": "out_of_corpus",
+      "subtype": "adjacent",
+      "top1_score": 0.5009940266609192,
+      "abstained": true,
+      "response": "I don't have information on that in my corpus.\n\nSources: none",
+      "sources_block": "",
+      "context_survived_top_chunk": null,
+      "false_accept": false
+    },
+    {
+      "id": "adjacent_8",
+      "question": "How does the Vision Transformer (ViT) adapt the Transformer architecture for image classification?",
+      "category": "out_of_corpus",
+      "subtype": "adjacent",
+      "top1_score": 0.524883508682251,
+      "abstained": true,
+      "response": "I don't have information on that in my corpus.\n\nSources: none",
+      "sources_block": "",
+      "context_survived_top_chunk": null,
+      "false_accept": false
+    }
+  ]
+}
