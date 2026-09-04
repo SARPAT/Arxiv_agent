@@ -23,20 +23,33 @@ class Settings(BaseSettings):
     # sessions.
     redis_url: str
 
-    # Switched from bge-base (768-dim, ~440MB weights) to bge-small
-    # (384-dim, ~130MB weights) in Checkpoint 4e: the Render backend's
-    # measured baseline RSS with bge-base loaded (~736MB) exceeds Render
-    # free tier's 512MB limit before a single request arrives - this is a
-    # model-weight-at-rest problem, not a per-request leak. See Checkpoint
-    # 4e's notes for the measurement.
+    # Checkpoint 4e swapped bge-base (768-dim, ~440MB weights) for
+    # bge-small (384-dim, ~130MB weights), assuming model weight size was
+    # the dominant memory cost. A continuous psutil RSS trace disproved
+    # that: baseline memory climbed past 700MB within 15 seconds of
+    # process start, before any request or model load - the real cost is
+    # torch + sentence-transformers + langchain's own import/runtime
+    # footprint, largely independent of which model file sits on top of
+    # it. Checkpoint 4f keeps this same logical model but removes that
+    # framework: rag/embedder.py runs it via ONNX Runtime instead (no
+    # torch dependency at all). This string is now a logical/display
+    # name only - see rag/embedder.py for the actual ONNX model source.
     embedding_model: str = "BAAI/bge-small-en-v1.5"
     generation_model: str = "nvidia/nemotron-3.5-lightning-30b-a3b"
     max_tokens: int = 512
 
-    # Calibrated by eval/calibrate_threshold.py against
-    # bge-small-en-v1.5's score distribution. Full detail in
-    # eval/calibration_result.json: ROC-AUC 0.9386, sensitivity 0.84 at
-    # specificity 0.9286 (target was specificity >= 0.90).
+    # STALE as of the ONNX runtime switch (Checkpoint 4f): calibrated by
+    # eval/calibrate_threshold.py against bge-small-en-v1.5 run through
+    # sentence-transformers in fp32 (golden set's 50 in-corpus / 14
+    # out-of-corpus labels; full detail in eval/calibration_result.json -
+    # ROC-AUC 0.9386, sensitivity 0.84 at specificity 0.9286, target was
+    # specificity >= 0.90). Quantization and a different inference
+    # runtime produce different float values than that path, even for
+    # the same logical model, so this value is meaningless against an
+    # ONNX-built index and MUST be replaced with a fresh calibration run
+    # before the index is rebuilt and this change ships - do not deploy
+    # embedding_model/rag/embedder.py and this threshold out of sync with
+    # each other or with the committed index.
     similarity_threshold: float = 0.433317
 
     retrieval_k: int = 4

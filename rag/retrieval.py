@@ -1,9 +1,10 @@
 """Similarity search over the FAISS index built in Checkpoint 1.
 
 Loads the persisted index from ``data/docstore_index/`` using the same
-embedding model (``app.config.settings.embedding_model``) it was built
-with — FAISS indexes are just vectors plus metadata, so querying with a
-different embedder would silently produce meaningless nearest-neighbor
+embedder (``rag.embedder.get_embedder()``) it was built with — FAISS
+indexes are just vectors plus metadata, so querying with a different
+embedder (or even the same model through a different runtime - see
+Checkpoint 4f) would silently produce meaningless nearest-neighbor
 results.
 
 Retrieval is cached in two layers (``app/cache.py``): a full-retrieval
@@ -12,7 +13,6 @@ retrieval-cache miss — a query-embedding cache underneath it. Both are
 optional from a correctness standpoint; see ``retrieve()``.
 """
 
-from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 
@@ -23,7 +23,7 @@ from app.cache import (
     set_cached_embedding,
     set_cached_retrieval,
 )
-from app.config import settings
+from rag.embedder import get_embedder
 
 INDEX_PATH = "data/docstore_index"
 
@@ -47,9 +47,8 @@ def _get_vectorstore() -> FAISS:
     """
     global _vectorstore
     if _vectorstore is None:
-        embeddings = HuggingFaceEmbeddings(model_name=settings.embedding_model)
         _vectorstore = FAISS.load_local(
-            INDEX_PATH, embeddings, allow_dangerous_deserialization=True
+            INDEX_PATH, get_embedder(), allow_dangerous_deserialization=True
         )
     return _vectorstore
 

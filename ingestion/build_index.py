@@ -2,27 +2,25 @@
 
 Fetches each paper via ArxivLoader, strips its references section, chunks
 the remaining text, adds synthetic doc-list and per-paper metadata chunks,
-embeds everything with ``app.config.settings.embedding_model``, and
-persists the FAISS index to data/docstore_index/. The corpus is static, so
-this is meant to be run once, not on every app boot.
+embeds everything with ``rag.embedder.get_embedder()``, and persists the
+FAISS index to data/docstore_index/. The corpus is static, so this is
+meant to be run once, not on every app boot.
 """
 
 import re
 from collections import Counter
 
 from langchain_community.document_loaders import ArxivLoader
-from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-from app.config import settings
+from rag.embedder import get_embedder
 
-# Reads from the centralized setting (Checkpoint 4a) rather than its own
-# constant, so this script and rag/retrieval.py can never embed with two
-# different models - a mismatch here would silently build an index at the
-# wrong dimensionality for what the running app actually queries with.
-EMBEDDING_MODEL = settings.embedding_model
+# Shared with rag/retrieval.py (Checkpoint 4f) rather than each owning its
+# own embedding logic - Checkpoint 4e found this script had drifted onto
+# its own hardcoded model constant, which would have silently built an
+# index at the wrong dimensionality for what the running app queries with.
 INDEX_PATH = "data/docstore_index"
 CHUNK_SIZE = 1000
 CHUNK_OVERLAP = 150
@@ -157,8 +155,8 @@ def main():
     synthetic_chunks = build_synthetic_chunks()
     all_chunks = body_chunks + synthetic_chunks
 
-    print(f"Loading embedding model {EMBEDDING_MODEL}...")
-    embeddings = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL)
+    print("Loading ONNX embedder...")
+    embeddings = get_embedder()
     embedding_dim = len(embeddings.embed_query("dimension check"))
 
     print(f"Embedding {len(all_chunks)} chunks and building FAISS index...")
