@@ -23,14 +23,26 @@ class Settings(BaseSettings):
     # sessions.
     redis_url: str
 
-    embedding_model: str = "BAAI/bge-base-en-v1.5"
+    # Switched from bge-base (768-dim, ~440MB weights) to bge-small
+    # (384-dim, ~130MB weights) in Checkpoint 4e: the Render backend's
+    # measured baseline RSS with bge-base loaded (~736MB) exceeds Render
+    # free tier's 512MB limit before a single request arrives - this is a
+    # model-weight-at-rest problem, not a per-request leak. See Checkpoint
+    # 4e's notes for the measurement.
+    embedding_model: str = "BAAI/bge-small-en-v1.5"
     generation_model: str = "nvidia/nemotron-3.5-lightning-30b-a3b"
     max_tokens: int = 512
 
-    # Calibrated by eval/calibrate_threshold.py against the golden set's
-    # 50 in-corpus / 14 out-of-corpus labels. Full detail in
-    # eval/calibration_result.json: ROC-AUC 0.9514, sensitivity 0.84 at
-    # specificity 0.9286 (target was specificity >= 0.90).
+    # STALE as of the embedding_model change above: calibrated by
+    # eval/calibrate_threshold.py against bge-base's score distribution
+    # (golden set's 50 in-corpus / 14 out-of-corpus labels; full detail in
+    # eval/calibration_result.json - ROC-AUC 0.9514, sensitivity 0.84 at
+    # specificity 0.9286, target was specificity >= 0.90). A different
+    # embedding model produces a different score distribution, so this
+    # value is meaningless against a bge-small-built index and MUST be
+    # replaced with a fresh calibration run before the index is rebuilt
+    # and this change ships - do not deploy embedding_model and this
+    # threshold out of sync with each other or with the committed index.
     similarity_threshold: float = 0.493409663438797
 
     retrieval_k: int = 4

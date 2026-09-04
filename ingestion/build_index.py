@@ -2,9 +2,9 @@
 
 Fetches each paper via ArxivLoader, strips its references section, chunks
 the remaining text, adds synthetic doc-list and per-paper metadata chunks,
-embeds everything with BAAI/bge-base-en-v1.5, and persists the FAISS index
-to data/docstore_index/. The corpus is static, so this is meant to be run
-once, not on every app boot.
+embeds everything with ``app.config.settings.embedding_model``, and
+persists the FAISS index to data/docstore_index/. The corpus is static, so
+this is meant to be run once, not on every app boot.
 """
 
 import re
@@ -16,7 +16,13 @@ from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-EMBEDDING_MODEL = "BAAI/bge-base-en-v1.5"
+from app.config import settings
+
+# Reads from the centralized setting (Checkpoint 4a) rather than its own
+# constant, so this script and rag/retrieval.py can never embed with two
+# different models - a mismatch here would silently build an index at the
+# wrong dimensionality for what the running app actually queries with.
+EMBEDDING_MODEL = settings.embedding_model
 INDEX_PATH = "data/docstore_index"
 CHUNK_SIZE = 1000
 CHUNK_OVERLAP = 150
