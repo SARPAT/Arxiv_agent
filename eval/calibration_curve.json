@@ -1,0 +1,87 @@
+{
+  "roc_auc": 0.8640000000000001,
+  "n_in_corpus": 150,
+  "n_out_of_corpus": 50,
+  "curve": [
+    {
+      "target_specificity": 0.7,
+      "threshold": 0.5007058382034302,
+      "sensitivity_overall": 0.78,
+      "specificity_overall": 0.7,
+      "sensitivity_by_style": {
+        "formal": 0.9795918367346939,
+        "casual": 0.5689655172413793,
+        "short": 0.8571428571428571,
+        "meta": 0.0
+      },
+      "specificity_by_subtype": {
+        "unrelated": 1.0,
+        "adjacent_uncovered": 0.5
+      }
+    },
+    {
+      "target_specificity": 0.75,
+      "threshold": 0.4912766218185425,
+      "sensitivity_overall": 0.7666666666666667,
+      "specificity_overall": 0.76,
+      "sensitivity_by_style": {
+        "formal": 0.9795918367346939,
+        "casual": 0.5344827586206896,
+        "short": 0.8571428571428571,
+        "meta": 0.0
+      },
+      "specificity_by_subtype": {
+        "unrelated": 1.0,
+        "adjacent_uncovered": 0.6
+      }
+    },
+    {
+      "target_specificity": 0.8,
+      "threshold": 0.4813797175884247,
+      "sensitivity_overall": 0.7466666666666667,
+      "specificity_overall": 0.8,
+      "sensitivity_by_style": {
+        "formal": 0.9795918367346939,
+        "casual": 0.5172413793103449,
+        "short": 0.8095238095238095,
+        "meta": 0.0
+      },
+      "specificity_by_subtype": {
+        "unrelated": 1.0,
+        "adjacent_uncovered": 0.6666666666666666
+      }
+    },
+    {
+      "target_specificity": 0.85,
+      "threshold": 0.4760091304779053,
+      "sensitivity_overall": 0.72,
+      "specificity_overall": 0.86,
+      "sensitivity_by_style": {
+        "formal": 0.9795918367346939,
+        "casual": 0.46551724137931033,
+        "short": 0.7857142857142857,
+        "meta": 0.0
+      },
+      "specificity_by_subtype": {
+        "unrelated": 1.0,
+        "adjacent_uncovered": 0.7666666666666667
+      }
+    },
+    {
+      "target_specificity": 0.9,
+      "threshold": 0.47072499990463257,
+      "sensitivity_overall": 0.7066666666666667,
+      "specificity_overall": 0.9,
+      "sensitivity_by_style": {
+        "formal": 0.9591836734693877,
+        "casual": 0.46551724137931033,
+        "short": 0.7619047619047619,
+        "meta": 0.0
+      },
+      "specificity_by_subtype": {
+        "unrelated": 1.0,
+        "adjacent_uncovered": 0.8333333333333334
+      }
+    }
+  ]
+}
