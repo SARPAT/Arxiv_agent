@@ -9,6 +9,23 @@ the model, or a fresh FAISS search) rather than raising, so a cache
 outage only removes the speed benefit for that one call, never changes
 the answer or fails the request.
 
+Both cache keys include ``settings.embedding_model``, the same
+invalidation-on-change protection ``corpus_version`` already gives against
+document changes. This was found missing the hard way: after Checkpoint
+4f swapped the embedding runtime (sentence-transformers -> ONNX Runtime),
+``eval/calibrate_threshold.py`` silently kept returning the old runtime's
+numbers because it was served stale cached embeddings/retrieval results
+computed before the swap - flushing the cache by hand produced the
+correct, different numbers.
+
+Caveat: this only invalidates on a *model name* change. Checkpoint 4f
+deliberately kept ``embedding_model`` as a logical name unchanged across
+the sentence-transformers -> ONNX switch (see ``rag/embedder.py``), so by
+itself this fix would not have caught that exact swap - only a change
+that also changes ``settings.embedding_model``'s string value. Closing
+that gap fully would need a second identifier that changes with the
+concrete embedding *pipeline/runtime*, not just the model name.
+
 This module knows nothing about ``rag/``'s ``Document`` type on purpose:
 callers pass and receive plain JSON-safe data (embedding vectors as
 ``list[float]``, retrieved chunks as ``{"page_content": ..., "metadata":
@@ -77,7 +94,7 @@ def get_corpus_version() -> int:
 def get_cached_embedding(query: str) -> list[float] | None:
     """Return the cached embedding vector for ``query``, or ``None`` on a
     cache miss or Redis error."""
-    key = f"embedding:{_query_hash(query)}"
+    key = f"embedding:{settings.embedding_model}:{_query_hash(query)}"
     try:
         raw = _client.get(key)
     except redis.exceptions.RedisError:
@@ -92,7 +109,7 @@ def get_cached_embedding(query: str) -> list[float] | None:
 
 def set_cached_embedding(query: str, vector: list[float]) -> None:
     """Write ``vector`` to the embedding cache for ``query``."""
-    key = f"embedding:{_query_hash(query)}"
+    key = f"embedding:{settings.embedding_model}:{_query_hash(query)}"
     try:
         _client.set(key, json_dumps_safe(vector), ex=EMBEDDING_TTL_SECONDS)
     except redis.exceptions.RedisError:
@@ -103,7 +120,7 @@ def get_cached_retrieval(query: str, corpus_version: int) -> dict | None:
     """Return the cached ``{"chunks": [...], "scores": [...]}`` retrieval
     result for ``query`` at ``corpus_version``, or ``None`` on a cache
     miss or Redis error."""
-    key = f"retrieval:{corpus_version}:{_query_hash(query)}"
+    key = f"retrieval:{settings.embedding_model}:{corpus_version}:{_query_hash(query)}"
     try:
         raw = _client.get(key)
     except redis.exceptions.RedisError:
@@ -121,7 +138,7 @@ def set_cached_retrieval(
 ) -> None:
     """Write a retrieval result for ``query`` at ``corpus_version`` to the
     retrieval cache."""
-    key = f"retrieval:{corpus_version}:{_query_hash(query)}"
+    key = f"retrieval:{settings.embedding_model}:{corpus_version}:{_query_hash(query)}"
     value = json_dumps_safe({"chunks": chunks, "scores": scores})
     try:
         _client.set(key, value, ex=RETRIEVAL_TTL_SECONDS)
@@ -157,3 +174,41 @@ if __name__ == "__main__":
         "set_cached_retrieval()/get_cached_retrieval() handled numpy.float32 "
         "scores without raising."
     )
+
+    # A model/runtime swap must not silently serve a cache entry computed
+    # by the old embedder - this exact protection was missing after
+    # Checkpoint 4f's sentence-transformers -> ONNX swap. Change
+    # settings.embedding_model between two calls with the same query text
+    # and confirm they land on different keys rather than colliding.
+    original_model = settings.embedding_model
+    try:
+        settings.embedding_model = "model-a"
+        set_cached_embedding("shared query", [1.0, 2.0])
+        set_cached_retrieval(
+            "shared query",
+            corpus_version=1,
+            chunks=[{"page_content": "a", "metadata": {}}],
+            scores=[0.1],
+        )
+
+        settings.embedding_model = "model-b"
+        assert get_cached_embedding("shared query") is None, (
+            "a different embedding_model must not see model-a's cached embedding"
+        )
+        assert get_cached_retrieval("shared query", corpus_version=1) is None, (
+            "a different embedding_model must not see model-a's cached retrieval"
+        )
+        print(
+            "PASSED: changing settings.embedding_model changes the cache key - "
+            "no collision between different models/runtimes."
+        )
+
+        settings.embedding_model = "model-a"
+        assert get_cached_embedding("shared query") == [1.0, 2.0]
+        assert get_cached_retrieval("shared query", corpus_version=1) is not None
+        print(
+            "PASSED: switching back to the original embedding_model still finds "
+            "its own cache entry."
+        )
+    finally:
+        settings.embedding_model = original_model
