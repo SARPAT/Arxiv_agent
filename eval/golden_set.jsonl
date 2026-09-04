@@ -1,64 +1,200 @@
-{"id": "attention_1", "question": "What is the main architecture proposed in \"Attention Is All You Need,\" and how does it differ from previous sequence transduction models?", "category": "in_corpus", "paper_key": "attention", "arxiv_id": "1706.03762", "subtype": "paper"}
-{"id": "attention_2", "question": "What is scaled dot-product attention, and why is the scaling factor of 1/sqrt(d_k) used?", "category": "in_corpus", "paper_key": "attention", "arxiv_id": "1706.03762", "subtype": "paper"}
-{"id": "attention_3", "question": "What is multi-head attention, and why does the paper use multiple attention heads instead of a single attention function?", "category": "in_corpus", "paper_key": "attention", "arxiv_id": "1706.03762", "subtype": "paper"}
-{"id": "attention_4", "question": "How does the Transformer model handle positional information given that it contains no recurrence or convolution?", "category": "in_corpus", "paper_key": "attention", "arxiv_id": "1706.03762", "subtype": "paper"}
-{"id": "attention_5", "question": "What are the three types of attention layers used in the Transformer, and where is each applied?", "category": "in_corpus", "paper_key": "attention", "arxiv_id": "1706.03762", "subtype": "paper"}
-{"id": "attention_6", "question": "What BLEU scores are reported for the base and big Transformer models on the WMT 2014 English-to-German translation task?", "category": "in_corpus", "paper_key": "attention", "arxiv_id": "1706.03762", "subtype": "paper"}
-{"id": "attention_7", "question": "What is the computational complexity advantage of self-attention layers compared to recurrent layers, per the paper's analysis?", "category": "in_corpus", "paper_key": "attention", "arxiv_id": "1706.03762", "subtype": "paper"}
-{"id": "bert_1", "question": "What is BERT and how does it differ from previous language representation models like GPT and ELMo?", "category": "in_corpus", "paper_key": "bert", "arxiv_id": "1810.04805", "subtype": "paper"}
-{"id": "bert_2", "question": "What are the two unsupervised pre-training tasks used to train BERT?", "category": "in_corpus", "paper_key": "bert", "arxiv_id": "1810.04805", "subtype": "paper"}
-{"id": "bert_3", "question": "What is the Masked Language Model (MLM) objective, and what percentage of tokens are masked during pre-training?", "category": "in_corpus", "paper_key": "bert", "arxiv_id": "1810.04805", "subtype": "paper"}
-{"id": "bert_4", "question": "What is the Next Sentence Prediction (NSP) task, and what purpose does it serve?", "category": "in_corpus", "paper_key": "bert", "arxiv_id": "1810.04805", "subtype": "paper"}
-{"id": "bert_5", "question": "What are the two model sizes released for BERT (BERT-base and BERT-large), and what are their layer/hidden/head configurations?", "category": "in_corpus", "paper_key": "bert", "arxiv_id": "1810.04805", "subtype": "paper"}
-{"id": "bert_6", "question": "How does BERT achieve state-of-the-art results on the GLUE benchmark?", "category": "in_corpus", "paper_key": "bert", "arxiv_id": "1810.04805", "subtype": "paper"}
-{"id": "bert_7", "question": "What is the [CLS] token used for in BERT's input representation?", "category": "in_corpus", "paper_key": "bert", "arxiv_id": "1810.04805", "subtype": "paper"}
-{"id": "rag_paper_1", "question": "What problem does Retrieval-Augmented Generation (RAG) aim to solve compared to purely parametric language models?", "category": "in_corpus", "paper_key": "rag_paper", "arxiv_id": "2005.11401", "subtype": "paper"}
-{"id": "rag_paper_2", "question": "What are the two RAG model variants proposed in the paper (RAG-Sequence vs RAG-Token)?", "category": "in_corpus", "paper_key": "rag_paper", "arxiv_id": "2005.11401", "subtype": "paper"}
-{"id": "rag_paper_3", "question": "What retriever is used in the RAG paper, and how is it pre-trained?", "category": "in_corpus", "paper_key": "rag_paper", "arxiv_id": "2005.11401", "subtype": "paper"}
-{"id": "rag_paper_4", "question": "What non-parametric memory does RAG use for retrieval?", "category": "in_corpus", "paper_key": "rag_paper", "arxiv_id": "2005.11401", "subtype": "paper"}
-{"id": "rag_paper_5", "question": "How does RAG combine the retriever and generator during end-to-end training?", "category": "in_corpus", "paper_key": "rag_paper", "arxiv_id": "2005.11401", "subtype": "paper"}
-{"id": "rag_paper_6", "question": "On which tasks was RAG evaluated, and how did it perform compared to purely extractive or closed-book approaches?", "category": "in_corpus", "paper_key": "rag_paper", "arxiv_id": "2005.11401", "subtype": "paper"}
-{"id": "rag_paper_7", "question": "How does RAG handle the marginalization over retrieved documents during generation?", "category": "in_corpus", "paper_key": "rag_paper", "arxiv_id": "2005.11401", "subtype": "paper"}
-{"id": "mrkl_1", "question": "What does MRKL stand for, and what is the core idea behind MRKL Systems?", "category": "in_corpus", "paper_key": "mrkl", "arxiv_id": "2205.00445", "subtype": "paper"}
-{"id": "mrkl_2", "question": "What problem with large language models does the MRKL paper primarily address, such as arithmetic or reasoning failures?", "category": "in_corpus", "paper_key": "mrkl", "arxiv_id": "2205.00445", "subtype": "paper"}
-{"id": "mrkl_3", "question": "How does the MRKL architecture route a query to different expert modules?", "category": "in_corpus", "paper_key": "mrkl", "arxiv_id": "2205.00445", "subtype": "paper"}
-{"id": "mrkl_4", "question": "What role does the large language model play in a MRKL system beyond being the sole source of knowledge?", "category": "in_corpus", "paper_key": "mrkl", "arxiv_id": "2205.00445", "subtype": "paper"}
-{"id": "mrkl_5", "question": "What kinds of external modules or tools does the MRKL paper propose integrating with the LLM router?", "category": "in_corpus", "paper_key": "mrkl", "arxiv_id": "2205.00445", "subtype": "paper"}
-{"id": "mrkl_6", "question": "What experiments does the paper use to demonstrate the limitations of pure LLMs on arithmetic tasks?", "category": "in_corpus", "paper_key": "mrkl", "arxiv_id": "2205.00445", "subtype": "paper"}
-{"id": "mrkl_7", "question": "How does MRKL relate to the broader idea of combining neural networks with symbolic or external systems?", "category": "in_corpus", "paper_key": "mrkl", "arxiv_id": "2205.00445", "subtype": "paper"}
-{"id": "mistral7b_1", "question": "What is Mistral 7B, and how does it compare in performance to Llama 2 13B and Llama 1 34B?", "category": "in_corpus", "paper_key": "mistral7b", "arxiv_id": "2310.06825", "subtype": "paper"}
-{"id": "mistral7b_2", "question": "What attention mechanism does Mistral 7B use to improve inference efficiency?", "category": "in_corpus", "paper_key": "mistral7b", "arxiv_id": "2310.06825", "subtype": "paper"}
-{"id": "mistral7b_3", "question": "What is sliding window attention, and how does it help Mistral 7B handle longer sequences efficiently?", "category": "in_corpus", "paper_key": "mistral7b", "arxiv_id": "2310.06825", "subtype": "paper"}
-{"id": "mistral7b_4", "question": "What is Grouped-Query Attention (GQA), and why is it used in Mistral 7B?", "category": "in_corpus", "paper_key": "mistral7b", "arxiv_id": "2310.06825", "subtype": "paper"}
-{"id": "mistral7b_5", "question": "What is the rolling buffer cache, and how does it reduce memory usage during inference?", "category": "in_corpus", "paper_key": "mistral7b", "arxiv_id": "2310.06825", "subtype": "paper"}
-{"id": "mistral7b_6", "question": "What fine-tuned variant of Mistral 7B is introduced for instruction-following, and how does it perform relative to Llama 2 13B chat?", "category": "in_corpus", "paper_key": "mistral7b", "arxiv_id": "2310.06825", "subtype": "paper"}
-{"id": "mistral7b_7", "question": "What benchmarks were used to evaluate Mistral 7B, and in which categories does it particularly excel?", "category": "in_corpus", "paper_key": "mistral7b", "arxiv_id": "2310.06825", "subtype": "paper"}
-{"id": "judge_1", "question": "What is the central question explored in \"Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena\"?", "category": "in_corpus", "paper_key": "judge", "arxiv_id": "2306.05685", "subtype": "paper"}
-{"id": "judge_2", "question": "What is MT-Bench, and what does it evaluate?", "category": "in_corpus", "paper_key": "judge", "arxiv_id": "2306.05685", "subtype": "paper"}
-{"id": "judge_3", "question": "What is Chatbot Arena, and how does it collect human preference data?", "category": "in_corpus", "paper_key": "judge", "arxiv_id": "2306.05685", "subtype": "paper"}
-{"id": "judge_4", "question": "What biases does the paper identify in LLM judges, such as position bias, verbosity bias, or self-enhancement bias?", "category": "in_corpus", "paper_key": "judge", "arxiv_id": "2306.05685", "subtype": "paper"}
-{"id": "judge_5", "question": "How well did GPT-4 as a judge agree with human preferences, according to the paper's findings?", "category": "in_corpus", "paper_key": "judge", "arxiv_id": "2306.05685", "subtype": "paper"}
-{"id": "judge_6", "question": "What methods does the paper propose to mitigate biases in LLM-as-a-judge evaluations?", "category": "in_corpus", "paper_key": "judge", "arxiv_id": "2306.05685", "subtype": "paper"}
-{"id": "judge_7", "question": "What limitations of using LLM judges are identified in the paper?", "category": "in_corpus", "paper_key": "judge", "arxiv_id": "2306.05685", "subtype": "paper"}
-{"id": "survey_1", "question": "What are the three main paradigms of RAG identified in the survey (Naive RAG, Advanced RAG, Modular RAG)?", "category": "in_corpus", "paper_key": "survey", "arxiv_id": "2312.10997", "subtype": "paper"}
-{"id": "survey_2", "question": "What are the main components of a typical RAG pipeline described in the survey?", "category": "in_corpus", "paper_key": "survey", "arxiv_id": "2312.10997", "subtype": "paper"}
-{"id": "survey_3", "question": "What retrieval augmentation techniques are discussed for improving retrieval quality, such as query rewriting or re-ranking?", "category": "in_corpus", "paper_key": "survey", "arxiv_id": "2312.10997", "subtype": "paper"}
-{"id": "survey_4", "question": "What evaluation frameworks and benchmarks does the survey discuss for assessing RAG systems?", "category": "in_corpus", "paper_key": "survey", "arxiv_id": "2312.10997", "subtype": "paper"}
-{"id": "survey_5", "question": "What are the key challenges facing RAG systems identified by the survey, such as long context or robustness?", "category": "in_corpus", "paper_key": "survey", "arxiv_id": "2312.10997", "subtype": "paper"}
-{"id": "survey_6", "question": "How does the survey categorize the augmentation stages into pre-retrieval, retrieval, and post-retrieval?", "category": "in_corpus", "paper_key": "survey", "arxiv_id": "2312.10997", "subtype": "paper"}
-{"id": "survey_7", "question": "What future research directions does the survey propose for RAG?", "category": "in_corpus", "paper_key": "survey", "arxiv_id": "2312.10997", "subtype": "paper"}
-{"id": "meta_1", "question": "How many papers are indexed in this knowledge base, and what is the topic of each one?", "category": "in_corpus", "paper_key": "meta", "arxiv_id": null, "subtype": "meta"}
-{"id": "unrelated_1", "question": "What is the boiling point of water at sea level?", "category": "out_of_corpus", "paper_key": null, "arxiv_id": null, "subtype": "unrelated"}
-{"id": "unrelated_2", "question": "Who wrote the novel \"Pride and Prejudice\"?", "category": "out_of_corpus", "paper_key": null, "arxiv_id": null, "subtype": "unrelated"}
-{"id": "unrelated_3", "question": "What year did the French Revolution begin?", "category": "out_of_corpus", "paper_key": null, "arxiv_id": null, "subtype": "unrelated"}
-{"id": "unrelated_4", "question": "What is the chemical formula for table salt?", "category": "out_of_corpus", "paper_key": null, "arxiv_id": null, "subtype": "unrelated"}
-{"id": "unrelated_5", "question": "How many continents are there on Earth?", "category": "out_of_corpus", "paper_key": null, "arxiv_id": null, "subtype": "unrelated"}
-{"id": "unrelated_6", "question": "What is the capital city of Australia?", "category": "out_of_corpus", "paper_key": null, "arxiv_id": null, "subtype": "unrelated"}
-{"id": "adjacent_1", "question": "What is the diffusion model architecture used in Stable Diffusion?", "category": "out_of_corpus", "paper_key": null, "arxiv_id": null, "subtype": "adjacent"}
-{"id": "adjacent_2", "question": "How does the AlphaFold model predict protein structures?", "category": "out_of_corpus", "paper_key": null, "arxiv_id": null, "subtype": "adjacent"}
-{"id": "adjacent_3", "question": "What is Reinforcement Learning from Human Feedback (RLHF), and how was it used to train InstructGPT?", "category": "out_of_corpus", "paper_key": null, "arxiv_id": null, "subtype": "adjacent"}
-{"id": "adjacent_4", "question": "What is LoRA (Low-Rank Adaptation), and how does it enable efficient fine-tuning of large models?", "category": "out_of_corpus", "paper_key": null, "arxiv_id": null, "subtype": "adjacent"}
-{"id": "adjacent_5", "question": "What is the CLIP model, and how does it learn joint image-text representations?", "category": "out_of_corpus", "paper_key": null, "arxiv_id": null, "subtype": "adjacent"}
-{"id": "adjacent_6", "question": "What is quantization-aware training, and how does it reduce model size for deployment?", "category": "out_of_corpus", "paper_key": null, "arxiv_id": null, "subtype": "adjacent"}
-{"id": "adjacent_7", "question": "What is the Mixture-of-Experts (MoE) architecture used in models like Switch Transformer?", "category": "out_of_corpus", "paper_key": null, "arxiv_id": null, "subtype": "adjacent"}
-{"id": "adjacent_8", "question": "How does the Vision Transformer (ViT) adapt the Transformer architecture for image classification?", "category": "out_of_corpus", "paper_key": null, "arxiv_id": null, "subtype": "adjacent"}
+{"id": "ic_001", "type": "in_corpus", "question": "What is the main architecture proposed in \"Attention Is All You Need,\" and how does it differ from previous sequence transduction models?", "expected_papers": ["attention"], "style": "formal"}
+{"id": "ic_002", "type": "in_corpus", "question": "What is scaled dot-product attention, and why is the scaling factor of 1/sqrt(d_k) used?", "expected_papers": ["attention"], "style": "formal"}
+{"id": "ic_003", "type": "in_corpus", "question": "What is multi-head attention, and why does the paper use multiple attention heads instead of a single attention function?", "expected_papers": ["attention"], "style": "formal"}
+{"id": "ic_004", "type": "in_corpus", "question": "How does the Transformer model handle positional information given that it contains no recurrence or convolution?", "expected_papers": ["attention"], "style": "formal"}
+{"id": "ic_005", "type": "in_corpus", "question": "What are the three types of attention layers used in the Transformer, and where is each applied?", "expected_papers": ["attention"], "style": "formal"}
+{"id": "ic_006", "type": "in_corpus", "question": "What BLEU scores are reported for the base and big Transformer models on the WMT 2014 English-to-German translation task?", "expected_papers": ["attention"], "style": "formal"}
+{"id": "ic_007", "type": "in_corpus", "question": "What is the computational complexity advantage of self-attention layers compared to recurrent layers, per the paper's analysis?", "expected_papers": ["attention"], "style": "formal"}
+{"id": "ic_008", "type": "in_corpus", "question": "What is BERT and how does it differ from previous language representation models like GPT and ELMo?", "expected_papers": ["bert"], "style": "formal"}
+{"id": "ic_009", "type": "in_corpus", "question": "What are the two unsupervised pre-training tasks used to train BERT?", "expected_papers": ["bert"], "style": "formal"}
+{"id": "ic_010", "type": "in_corpus", "question": "What is the Masked Language Model (MLM) objective, and what percentage of tokens are masked during pre-training?", "expected_papers": ["bert"], "style": "formal"}
+{"id": "ic_011", "type": "in_corpus", "question": "What is the Next Sentence Prediction (NSP) task, and what purpose does it serve?", "expected_papers": ["bert"], "style": "formal"}
+{"id": "ic_012", "type": "in_corpus", "question": "What are the two model sizes released for BERT (BERT-base and BERT-large), and what are their layer/hidden/head configurations?", "expected_papers": ["bert"], "style": "formal"}
+{"id": "ic_013", "type": "in_corpus", "question": "What is the difference between BERT's pre-training and fine-tuning stages?", "expected_papers": ["bert"], "style": "formal"}
+{"id": "ic_014", "type": "in_corpus", "question": "What special tokens does BERT prepend to input sequences during pre-training?", "expected_papers": ["bert"], "style": "formal"}
+{"id": "ic_015", "type": "in_corpus", "question": "How does the RAG paper combine a parametric memory with a non-parametric memory?", "expected_papers": ["rag_paper"], "style": "formal"}
+{"id": "ic_016", "type": "in_corpus", "question": "What retriever architecture does the RAG paper use to fetch relevant passages before generation?", "expected_papers": ["rag_paper"], "style": "formal"}
+{"id": "ic_017", "type": "in_corpus", "question": "What is the difference between the RAG-Sequence and RAG-Token model variants?", "expected_papers": ["rag_paper"], "style": "formal"}
+{"id": "ic_018", "type": "in_corpus", "question": "How does the RAG approach aim to reduce hallucination compared to a purely parametric language model?", "expected_papers": ["rag_paper"], "style": "formal"}
+{"id": "ic_019", "type": "in_corpus", "question": "What corpus does the RAG paper use as its non-parametric knowledge source?", "expected_papers": ["rag_paper"], "style": "formal"}
+{"id": "ic_020", "type": "in_corpus", "question": "How is the retriever trained relative to the generator in the RAG approach?", "expected_papers": ["rag_paper"], "style": "formal"}
+{"id": "ic_021", "type": "in_corpus", "question": "What open-domain question answering benchmarks does the RAG paper evaluate on?", "expected_papers": ["rag_paper"], "style": "formal"}
+{"id": "ic_022", "type": "in_corpus", "question": "What does the MRKL paper propose as a way to combine large language models with external knowledge sources and discrete reasoning?", "expected_papers": ["mrkl"], "style": "formal"}
+{"id": "ic_023", "type": "in_corpus", "question": "What are the specialized modules ('experts') in the MRKL architecture, and how does the system route a query?", "expected_papers": ["mrkl"], "style": "formal"}
+{"id": "ic_024", "type": "in_corpus", "question": "Why does the MRKL paper argue that language models alone struggle with tasks like precise arithmetic?", "expected_papers": ["mrkl"], "style": "formal"}
+{"id": "ic_025", "type": "in_corpus", "question": "How does the MRKL system decide whether to answer directly or route a query to an external tool?", "expected_papers": ["mrkl"], "style": "formal"}
+{"id": "ic_026", "type": "in_corpus", "question": "What kinds of external modules does the MRKL paper suggest augmenting a language model with?", "expected_papers": ["mrkl"], "style": "formal"}
+{"id": "ic_027", "type": "in_corpus", "question": "What is meant by the 'neuro-symbolic' framing the MRKL paper uses for its architecture?", "expected_papers": ["mrkl"], "style": "formal"}
+{"id": "ic_028", "type": "in_corpus", "question": "What motivates combining discrete, rule-based reasoning systems with neural language models, per the MRKL paper?", "expected_papers": ["mrkl"], "style": "formal"}
+{"id": "ic_029", "type": "in_corpus", "question": "What attention mechanism does Mistral 7B use to handle longer sequences more efficiently?", "expected_papers": ["mistral7b"], "style": "formal"}
+{"id": "ic_030", "type": "in_corpus", "question": "How does Mistral 7B's grouped-query attention differ from standard multi-head attention?", "expected_papers": ["mistral7b"], "style": "formal"}
+{"id": "ic_031", "type": "in_corpus", "question": "What is the parameter count of Mistral 7B, and how does the paper say its performance compares to larger models?", "expected_papers": ["mistral7b"], "style": "formal"}
+{"id": "ic_032", "type": "in_corpus", "question": "What technique does the Mistral 7B paper describe for bounding memory usage of cached tokens?", "expected_papers": ["mistral7b"], "style": "formal"}
+{"id": "ic_033", "type": "in_corpus", "question": "What benchmarks does the Mistral 7B paper use to demonstrate reasoning and code-generation ability?", "expected_papers": ["mistral7b"], "style": "formal"}
+{"id": "ic_034", "type": "in_corpus", "question": "How many transformer layers and what hidden dimension does Mistral 7B use?", "expected_papers": ["mistral7b"], "style": "formal"}
+{"id": "ic_035", "type": "in_corpus", "question": "What licensing approach did the creators of Mistral 7B take on release?", "expected_papers": ["mistral7b"], "style": "formal"}
+{"id": "ic_036", "type": "in_corpus", "question": "What method does the LLM-as-a-judge paper propose for using a strong language model to evaluate other language models?", "expected_papers": ["judge"], "style": "formal"}
+{"id": "ic_037", "type": "in_corpus", "question": "What benchmark does the LLM-as-a-judge paper introduce for evaluating multi-turn chatbot conversational ability?", "expected_papers": ["judge"], "style": "formal"}
+{"id": "ic_038", "type": "in_corpus", "question": "What biases does the LLM-as-a-judge paper identify in using language models as evaluators?", "expected_papers": ["judge"], "style": "formal"}
+{"id": "ic_039", "type": "in_corpus", "question": "How does the LLM-as-a-judge paper measure agreement between model judges and human preference judgments?", "expected_papers": ["judge"], "style": "formal"}
+{"id": "ic_040", "type": "in_corpus", "question": "What is the difference between pairwise comparison and single-answer grading in the LLM-as-a-judge paper?", "expected_papers": ["judge"], "style": "formal"}
+{"id": "ic_041", "type": "in_corpus", "question": "Why might a language-model judge favor longer responses even when they aren't more correct, per the paper?", "expected_papers": ["judge"], "style": "formal"}
+{"id": "ic_042", "type": "in_corpus", "question": "What platform or method does the LLM-as-a-judge paper use to collect human preference data?", "expected_papers": ["judge"], "style": "formal"}
+{"id": "ic_043", "type": "in_corpus", "question": "What main paradigms does the RAG survey identify for how retrieval-augmented generation systems have evolved?", "expected_papers": ["survey"], "style": "formal"}
+{"id": "ic_044", "type": "in_corpus", "question": "How does the RAG survey categorize different chunking strategies used in retrieval pipelines?", "expected_papers": ["survey"], "style": "formal"}
+{"id": "ic_045", "type": "in_corpus", "question": "What retrieval evaluation metrics does the RAG survey discuss for assessing system quality?", "expected_papers": ["survey"], "style": "formal"}
+{"id": "ic_046", "type": "in_corpus", "question": "What challenges does the RAG survey identify around integrating retrieved context into a generation prompt?", "expected_papers": ["survey"], "style": "formal"}
+{"id": "ic_047", "type": "in_corpus", "question": "How does the RAG survey describe the tradeoffs between fine-tuning and retrieval augmentation?", "expected_papers": ["survey"], "style": "formal"}
+{"id": "ic_048", "type": "in_corpus", "question": "What role does re-ranking play in the more advanced RAG architectures the survey describes?", "expected_papers": ["survey"], "style": "formal"}
+{"id": "ic_049", "type": "in_corpus", "question": "What future research directions does the RAG survey suggest for improving retrieval-augmented generation?", "expected_papers": ["survey"], "style": "formal"}
+{"id": "ic_050", "type": "in_corpus", "question": "What papers or documents are available in this system's collection?", "expected_papers": ["synthetic_doclist"], "style": "meta"}
+{"id": "ic_051", "type": "in_corpus", "question": "how do transformers figure out which words to pay attention to", "expected_papers": ["attention"], "style": "casual"}
+{"id": "ic_052", "type": "in_corpus", "question": "explain the attention thing in transformers like im new to this", "expected_papers": ["attention"], "style": "casual"}
+{"id": "ic_053", "type": "in_corpus", "question": "why dont transformers need recurrence like rnns did", "expected_papers": ["attention"], "style": "casual"}
+{"id": "ic_054", "type": "in_corpus", "question": "whats multi head attention actually doing", "expected_papers": ["attention"], "style": "casual"}
+{"id": "ic_055", "type": "in_corpus", "question": "how fast is self attention compared to rnns", "expected_papers": ["attention"], "style": "casual"}
+{"id": "ic_056", "type": "in_corpus", "question": "what is scaler dot attention", "expected_papers": ["attention"], "style": "casual"}
+{"id": "ic_057", "type": "in_corpus", "question": "why scale by root dk in attention", "expected_papers": ["attention"], "style": "casual"}
+{"id": "ic_058", "type": "in_corpus", "question": "how does the transformer know word order without recurrence", "expected_papers": ["attention"], "style": "casual"}
+{"id": "ic_059", "type": "in_corpus", "question": "what training tricks does bert use", "expected_papers": ["bert"], "style": "casual"}
+{"id": "ic_060", "type": "in_corpus", "question": "hows bert different from gpt basically", "expected_papers": ["bert"], "style": "casual"}
+{"id": "ic_061", "type": "in_corpus", "question": "what does bert do with masked words during training", "expected_papers": ["bert"], "style": "casual"}
+{"id": "ic_062", "type": "in_corpus", "question": "how big is bert compared to bert large", "expected_papers": ["bert"], "style": "casual"}
+{"id": "ic_063", "type": "in_corpus", "question": "what can you fine tune bert for", "expected_papers": ["bert"], "style": "casual"}
+{"id": "ic_064", "type": "in_corpus", "question": "wut is bert doin diffrent then gpt", "expected_papers": ["bert"], "style": "casual"}
+{"id": "ic_065", "type": "in_corpus", "question": "does bert read text left to right or both ways", "expected_papers": ["bert"], "style": "casual"}
+{"id": "ic_066", "type": "in_corpus", "question": "whats next sentence prediction for in bert", "expected_papers": ["bert"], "style": "casual"}
+{"id": "ic_067", "type": "in_corpus", "question": "How does the RAG paper combine a retriever with a generator?", "expected_papers": ["rag_paper"], "style": "casual"}
+{"id": "ic_068", "type": "in_corpus", "question": "hows rag different from just using a bigger language model", "expected_papers": ["rag_paper"], "style": "casual"}
+{"id": "ic_069", "type": "in_corpus", "question": "what knowledge source does the rag paper pull from", "expected_papers": ["rag_paper"], "style": "casual"}
+{"id": "ic_070", "type": "in_corpus", "question": "does rag help with making stuff up less", "expected_papers": ["rag_paper"], "style": "casual"}
+{"id": "ic_071", "type": "in_corpus", "question": "whats the diff between rag sequence and rag token", "expected_papers": ["rag_paper"], "style": "casual"}
+{"id": "ic_072", "type": "in_corpus", "question": "is the retriever trained separately or together with the generator in rag", "expected_papers": ["rag_paper"], "style": "casual"}
+{"id": "ic_073", "type": "in_corpus", "question": "why cant llms just do math themselves", "expected_papers": ["mrkl"], "style": "casual"}
+{"id": "ic_074", "type": "in_corpus", "question": "whats mrkl trying to fix about language models", "expected_papers": ["mrkl"], "style": "casual"}
+{"id": "ic_075", "type": "in_corpus", "question": "how does mrkl decide which tool to use for a question", "expected_papers": ["mrkl"], "style": "casual"}
+{"id": "ic_076", "type": "in_corpus", "question": "whats neuro symbolic mean in the mrkl paper", "expected_papers": ["mrkl"], "style": "casual"}
+{"id": "ic_077", "type": "in_corpus", "question": "what kinda external tools does mrkl bolt onto an llm", "expected_papers": ["mrkl"], "style": "casual"}
+{"id": "ic_078", "type": "in_corpus", "question": "whats an expert module in mrkl", "expected_papers": ["mrkl"], "style": "casual"}
+{"id": "ic_079", "type": "in_corpus", "question": "whats grouped query attention about", "expected_papers": ["mistral7b"], "style": "casual"}
+{"id": "ic_080", "type": "in_corpus", "question": "how does mistral 7b keep memory usage down", "expected_papers": ["mistral7b"], "style": "casual"}
+{"id": "ic_081", "type": "in_corpus", "question": "how does mistral 7b compare to llama 2 13b", "expected_papers": ["mistral7b"], "style": "casual"}
+{"id": "ic_082", "type": "in_corpus", "question": "whats the sliding window thing in mistral", "expected_papers": ["mistral7b"], "style": "casual"}
+{"id": "ic_083", "type": "in_corpus", "question": "what license did they release mistral under", "expected_papers": ["mistral7b"], "style": "casual"}
+{"id": "ic_084", "type": "in_corpus", "question": "grouped querry attention explain", "expected_papers": ["mistral7b"], "style": "casual"}
+{"id": "ic_085", "type": "in_corpus", "question": "how many params does mistral 7b have", "expected_papers": ["mistral7b"], "style": "casual"}
+{"id": "ic_086", "type": "in_corpus", "question": "What biases does the LLM-as-a-judge paper identify?", "expected_papers": ["judge"], "style": "casual"}
+{"id": "ic_087", "type": "in_corpus", "question": "can an ai actually judge chatbot answers well", "expected_papers": ["judge"], "style": "casual"}
+{"id": "ic_088", "type": "in_corpus", "question": "whats mt bench for", "expected_papers": ["judge"], "style": "casual"}
+{"id": "ic_089", "type": "in_corpus", "question": "does the judge model like longer answers even if theyre not better", "expected_papers": ["judge"], "style": "casual"}
+{"id": "ic_090", "type": "in_corpus", "question": "how do they check if the ai judge agrees with humans", "expected_papers": ["judge"], "style": "casual"}
+{"id": "ic_091", "type": "in_corpus", "question": "wheres the human preference data collected from in the judge paper", "expected_papers": ["judge"], "style": "casual"}
+{"id": "ic_092", "type": "in_corpus", "question": "What chunking strategies does the RAG survey discuss?", "expected_papers": ["survey"], "style": "casual"}
+{"id": "ic_093", "type": "in_corpus", "question": "whats the difference between naive and advanced rag per the survey", "expected_papers": ["survey"], "style": "casual"}
+{"id": "ic_094", "type": "in_corpus", "question": "how does the survey say to evaluate a rag pipeline", "expected_papers": ["survey"], "style": "casual"}
+{"id": "ic_095", "type": "in_corpus", "question": "does reranking actually help rag systems", "expected_papers": ["survey"], "style": "casual"}
+{"id": "ic_096", "type": "in_corpus", "question": "whats hard about picking good chunk sizes", "expected_papers": ["survey"], "style": "casual"}
+{"id": "ic_097", "type": "in_corpus", "question": "what does the survey say about fine tuning vs retrieval", "expected_papers": ["survey"], "style": "casual"}
+{"id": "ic_098", "type": "in_corpus", "question": "scaled dot-product attention", "expected_papers": ["attention"], "style": "short"}
+{"id": "ic_099", "type": "in_corpus", "question": "multi-head attention purpose", "expected_papers": ["attention"], "style": "short"}
+{"id": "ic_100", "type": "in_corpus", "question": "transformer positional encoding", "expected_papers": ["attention"], "style": "short"}
+{"id": "ic_101", "type": "in_corpus", "question": "self-attention complexity", "expected_papers": ["attention"], "style": "short"}
+{"id": "ic_102", "type": "in_corpus", "question": "transformer encoder decoder attention", "expected_papers": ["attention"], "style": "short"}
+{"id": "ic_103", "type": "in_corpus", "question": "attention BLEU score results", "expected_papers": ["attention"], "style": "short"}
+{"id": "ic_104", "type": "in_corpus", "question": "BERT pretraining objectives", "expected_papers": ["bert"], "style": "short"}
+{"id": "ic_105", "type": "in_corpus", "question": "masked language modeling BERT", "expected_papers": ["bert"], "style": "short"}
+{"id": "ic_106", "type": "in_corpus", "question": "next sentence prediction", "expected_papers": ["bert"], "style": "short"}
+{"id": "ic_107", "type": "in_corpus", "question": "BERT base vs large", "expected_papers": ["bert"], "style": "short"}
+{"id": "ic_108", "type": "in_corpus", "question": "BERT fine-tuning", "expected_papers": ["bert"], "style": "short"}
+{"id": "ic_109", "type": "in_corpus", "question": "BERT special tokens", "expected_papers": ["bert"], "style": "short"}
+{"id": "ic_110", "type": "in_corpus", "question": "RAG retriever generator", "expected_papers": ["rag_paper"], "style": "short"}
+{"id": "ic_111", "type": "in_corpus", "question": "RAG sequence vs token", "expected_papers": ["rag_paper"], "style": "short"}
+{"id": "ic_112", "type": "in_corpus", "question": "RAG hallucination reduction", "expected_papers": ["rag_paper"], "style": "short"}
+{"id": "ic_113", "type": "in_corpus", "question": "RAG non-parametric memory", "expected_papers": ["rag_paper"], "style": "short"}
+{"id": "ic_114", "type": "in_corpus", "question": "RAG open-domain QA benchmarks", "expected_papers": ["rag_paper"], "style": "short"}
+{"id": "ic_115", "type": "in_corpus", "question": "RAG retriever training", "expected_papers": ["rag_paper"], "style": "short"}
+{"id": "ic_116", "type": "in_corpus", "question": "MRKL external tools", "expected_papers": ["mrkl"], "style": "short"}
+{"id": "ic_117", "type": "in_corpus", "question": "MRKL routing mechanism", "expected_papers": ["mrkl"], "style": "short"}
+{"id": "ic_118", "type": "in_corpus", "question": "MRKL neuro-symbolic", "expected_papers": ["mrkl"], "style": "short"}
+{"id": "ic_119", "type": "in_corpus", "question": "MRKL arithmetic limitation", "expected_papers": ["mrkl"], "style": "short"}
+{"id": "ic_120", "type": "in_corpus", "question": "MRKL expert modules", "expected_papers": ["mrkl"], "style": "short"}
+{"id": "ic_121", "type": "in_corpus", "question": "MRKL discrete reasoning", "expected_papers": ["mrkl"], "style": "short"}
+{"id": "ic_122", "type": "in_corpus", "question": "Mistral 7B grouped-query attention", "expected_papers": ["mistral7b"], "style": "short"}
+{"id": "ic_123", "type": "in_corpus", "question": "Mistral 7B sliding window attention", "expected_papers": ["mistral7b"], "style": "short"}
+{"id": "ic_124", "type": "in_corpus", "question": "Mistral 7B parameter count", "expected_papers": ["mistral7b"], "style": "short"}
+{"id": "ic_125", "type": "in_corpus", "question": "Mistral 7B vs Llama 2", "expected_papers": ["mistral7b"], "style": "short"}
+{"id": "ic_126", "type": "in_corpus", "question": "Mistral 7B license", "expected_papers": ["mistral7b"], "style": "short"}
+{"id": "ic_127", "type": "in_corpus", "question": "Mistral 7B rolling buffer cache", "expected_papers": ["mistral7b"], "style": "short"}
+{"id": "ic_128", "type": "in_corpus", "question": "LLM judge position bias", "expected_papers": ["judge"], "style": "short"}
+{"id": "ic_129", "type": "in_corpus", "question": "MT-Bench evaluation", "expected_papers": ["judge"], "style": "short"}
+{"id": "ic_130", "type": "in_corpus", "question": "LLM judge verbosity bias", "expected_papers": ["judge"], "style": "short"}
+{"id": "ic_131", "type": "in_corpus", "question": "pairwise vs single answer grading", "expected_papers": ["judge"], "style": "short"}
+{"id": "ic_132", "type": "in_corpus", "question": "Chatbot Arena human preference", "expected_papers": ["judge"], "style": "short"}
+{"id": "ic_133", "type": "in_corpus", "question": "LLM judge human agreement", "expected_papers": ["judge"], "style": "short"}
+{"id": "ic_134", "type": "in_corpus", "question": "RAG survey chunking strategies", "expected_papers": ["survey"], "style": "short"}
+{"id": "ic_135", "type": "in_corpus", "question": "naive vs advanced RAG", "expected_papers": ["survey"], "style": "short"}
+{"id": "ic_136", "type": "in_corpus", "question": "RAG evaluation metrics", "expected_papers": ["survey"], "style": "short"}
+{"id": "ic_137", "type": "in_corpus", "question": "RAG reranking role", "expected_papers": ["survey"], "style": "short"}
+{"id": "ic_138", "type": "in_corpus", "question": "RAG fine-tuning tradeoff", "expected_papers": ["survey"], "style": "short"}
+{"id": "ic_139", "type": "in_corpus", "question": "RAG future research directions", "expected_papers": ["survey"], "style": "short"}
+{"id": "ooc_001", "type": "out_of_corpus", "subtype": "unrelated", "question": "What's the best way to bake a sourdough loaf at home?", "expected_papers": []}
+{"id": "ooc_002", "type": "out_of_corpus", "subtype": "unrelated", "question": "How do I change a flat tire on a car?", "expected_papers": []}
+{"id": "ooc_003", "type": "out_of_corpus", "subtype": "unrelated", "question": "What is the capital of Australia?", "expected_papers": []}
+{"id": "ooc_004", "type": "out_of_corpus", "subtype": "unrelated", "question": "How does photosynthesis work in plants?", "expected_papers": []}
+{"id": "ooc_005", "type": "out_of_corpus", "subtype": "unrelated", "question": "What are the rules of castling in chess?", "expected_papers": []}
+{"id": "ooc_006", "type": "out_of_corpus", "subtype": "unrelated", "question": "How do I file taxes as a freelancer in India?", "expected_papers": []}
+{"id": "ooc_007", "type": "out_of_corpus", "subtype": "unrelated", "question": "How do I train for a marathon?", "expected_papers": []}
+{"id": "ooc_008", "type": "out_of_corpus", "subtype": "unrelated", "question": "What's a good recipe for banana bread?", "expected_papers": []}
+{"id": "ooc_009", "type": "out_of_corpus", "subtype": "unrelated", "question": "How does compound interest work?", "expected_papers": []}
+{"id": "ooc_010", "type": "out_of_corpus", "subtype": "unrelated", "question": "What's the best way to learn a new language?", "expected_papers": []}
+{"id": "ooc_011", "type": "out_of_corpus", "subtype": "unrelated", "question": "How do I fix a leaky faucet?", "expected_papers": []}
+{"id": "ooc_012", "type": "out_of_corpus", "subtype": "unrelated", "question": "What causes the northern lights?", "expected_papers": []}
+{"id": "ooc_013", "type": "out_of_corpus", "subtype": "unrelated", "question": "How do I set up a budget spreadsheet?", "expected_papers": []}
+{"id": "ooc_014", "type": "out_of_corpus", "subtype": "unrelated", "question": "What's the difference between a crocodile and an alligator?", "expected_papers": []}
+{"id": "ooc_015", "type": "out_of_corpus", "subtype": "unrelated", "question": "How do solar panels generate electricity?", "expected_papers": []}
+{"id": "ooc_016", "type": "out_of_corpus", "subtype": "unrelated", "question": "What's a good workout routine for beginners?", "expected_papers": []}
+{"id": "ooc_017", "type": "out_of_corpus", "subtype": "unrelated", "question": "How does a car engine's combustion cycle work?", "expected_papers": []}
+{"id": "ooc_018", "type": "out_of_corpus", "subtype": "unrelated", "question": "What's the history of the Eiffel Tower?", "expected_papers": []}
+{"id": "ooc_019", "type": "out_of_corpus", "subtype": "unrelated", "question": "How do I brew a good cup of pour-over coffee?", "expected_papers": []}
+{"id": "ooc_020", "type": "out_of_corpus", "subtype": "unrelated", "question": "What are the basic rules of cricket?", "expected_papers": []}
+{"id": "ooc_021", "type": "out_of_corpus", "subtype": "adjacent_uncovered", "question": "How does the diffusion process work in image generation models like Stable Diffusion?", "expected_papers": []}
+{"id": "ooc_022", "type": "out_of_corpus", "subtype": "adjacent_uncovered", "question": "What is contrastive learning and how is it used in models like CLIP?", "expected_papers": []}
+{"id": "ooc_023", "type": "out_of_corpus", "subtype": "adjacent_uncovered", "question": "How does reinforcement learning from human feedback fine-tune a language model?", "expected_papers": []}
+{"id": "ooc_024", "type": "out_of_corpus", "subtype": "adjacent_uncovered", "question": "What is the ReAct framework for combining reasoning and acting in language model agents?", "expected_papers": []}
+{"id": "ooc_025", "type": "out_of_corpus", "subtype": "adjacent_uncovered", "question": "How does LoRA reduce the cost of fine-tuning large models?", "expected_papers": []}
+{"id": "ooc_026", "type": "out_of_corpus", "subtype": "adjacent_uncovered", "question": "What is the vanishing gradient problem in deep recurrent neural networks?", "expected_papers": []}
+{"id": "ooc_027", "type": "out_of_corpus", "subtype": "adjacent_uncovered", "question": "How does AlphaFold predict protein structures?", "expected_papers": []}
+{"id": "ooc_028", "type": "out_of_corpus", "subtype": "adjacent_uncovered", "question": "What's the difference between BM25 and dense retrieval for search ranking?", "expected_papers": []}
+{"id": "ooc_029", "type": "out_of_corpus", "subtype": "adjacent_uncovered", "question": "How does a convolutional neural network process images?", "expected_papers": []}
+{"id": "ooc_030", "type": "out_of_corpus", "subtype": "adjacent_uncovered", "question": "What is federated learning?", "expected_papers": []}
+{"id": "ooc_031", "type": "out_of_corpus", "subtype": "adjacent_uncovered", "question": "How does gradient descent find a minimum?", "expected_papers": []}
+{"id": "ooc_032", "type": "out_of_corpus", "subtype": "adjacent_uncovered", "question": "What's the difference between supervised and unsupervised learning?", "expected_papers": []}
+{"id": "ooc_033", "type": "out_of_corpus", "subtype": "adjacent_uncovered", "question": "How does word2vec create word embeddings?", "expected_papers": []}
+{"id": "ooc_034", "type": "out_of_corpus", "subtype": "adjacent_uncovered", "question": "What is the Transformer-XL architecture?", "expected_papers": []}
+{"id": "ooc_035", "type": "out_of_corpus", "subtype": "adjacent_uncovered", "question": "How does batch normalization help training?", "expected_papers": []}
+{"id": "ooc_036", "type": "out_of_corpus", "subtype": "adjacent_uncovered", "question": "What is knowledge distillation in neural networks?", "expected_papers": []}
+{"id": "ooc_037", "type": "out_of_corpus", "subtype": "adjacent_uncovered", "question": "How does beam search work in text generation?", "expected_papers": []}
+{"id": "ooc_038", "type": "out_of_corpus", "subtype": "adjacent_uncovered", "question": "What is the mixture-of-experts architecture?", "expected_papers": []}
+{"id": "ooc_039", "type": "out_of_corpus", "subtype": "adjacent_uncovered", "question": "How does speculative decoding speed up LLM inference?", "expected_papers": []}
+{"id": "ooc_040", "type": "out_of_corpus", "subtype": "adjacent_uncovered", "question": "What's the difference between L1 and L2 regularization?", "expected_papers": []}
+{"id": "ooc_041", "type": "out_of_corpus", "subtype": "adjacent_uncovered", "question": "How does a variational autoencoder work?", "expected_papers": []}
+{"id": "ooc_042", "type": "out_of_corpus", "subtype": "adjacent_uncovered", "question": "What is prompt injection and why is it a security concern?", "expected_papers": []}
+{"id": "ooc_043", "type": "out_of_corpus", "subtype": "adjacent_uncovered", "question": "How does flash attention reduce memory usage during training?", "expected_papers": []}
+{"id": "ooc_044", "type": "out_of_corpus", "subtype": "adjacent_uncovered", "question": "What is the CLIP model used for?", "expected_papers": []}
+{"id": "ooc_045", "type": "out_of_corpus", "subtype": "adjacent_uncovered", "question": "How does temperature affect sampling in text generation?", "expected_papers": []}
+{"id": "ooc_046", "type": "out_of_corpus", "subtype": "adjacent_uncovered", "question": "What's the difference between zero-shot and few-shot learning?", "expected_papers": []}
+{"id": "ooc_047", "type": "out_of_corpus", "subtype": "adjacent_uncovered", "question": "How does model quantization reduce inference cost?", "expected_papers": []}
+{"id": "ooc_048", "type": "out_of_corpus", "subtype": "adjacent_uncovered", "question": "What is catastrophic forgetting in neural networks?", "expected_papers": []}
+{"id": "ooc_049", "type": "out_of_corpus", "subtype": "adjacent_uncovered", "question": "How does a sparse mixture-of-experts model route tokens?", "expected_papers": []}
+{"id": "ooc_050", "type": "out_of_corpus", "subtype": "adjacent_uncovered", "question": "What is the difference between encoder-only and decoder-only transformer models?", "expected_papers": []}
+{"id": "ic_140", "type": "in_corpus", "question": "how many attention heads did the original transformer use", "expected_papers": ["attention"], "style": "casual"}
+{"id": "ic_141", "type": "in_corpus", "question": "how does bert handle words it hasnt seen before", "expected_papers": ["bert"], "style": "casual"}
+{"id": "ic_142", "type": "in_corpus", "question": "what happens if the retriever pulls back irrelevant documents in rag", "expected_papers": ["rag_paper"], "style": "casual"}
+{"id": "ic_143", "type": "in_corpus", "question": "is mrkl more like an agent or just a smarter llm", "expected_papers": ["mrkl"], "style": "casual"}
+{"id": "ic_144", "type": "in_corpus", "question": "whats the context window size for mistral 7b", "expected_papers": ["mistral7b"], "style": "casual"}
+{"id": "ic_145", "type": "in_corpus", "question": "whats the difference between mt bench and chatbot arena", "expected_papers": ["judge"], "style": "casual"}
+{"id": "ic_146", "type": "in_corpus", "question": "how many papers does the rag survey review roughly", "expected_papers": ["survey"], "style": "casual"}
+{"id": "ic_147", "type": "in_corpus", "question": "why is attention called self attention specifically", "expected_papers": ["attention"], "style": "casual"}
+{"id": "ic_148", "type": "in_corpus", "question": "can bert generate text or just understand it", "expected_papers": ["bert"], "style": "casual"}
+{"id": "ic_149", "type": "in_corpus", "question": "why would you pick mistral 7b over a bigger model", "expected_papers": ["mistral7b"], "style": "casual"}
+{"id": "ic_150", "type": "in_corpus", "question": "whats modular rag mean in the survey", "expected_papers": ["survey"], "style": "casual"}

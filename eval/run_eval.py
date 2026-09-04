@@ -17,18 +17,18 @@ that's the only case where a false attribution is even possible.
 Metrics:
 
 - ``recall_at_5`` / ``recall_at_8`` / ``mrr``: retrieval quality on
-  in-corpus questions, matched by the golden set's ``paper_key`` field
-  against each question's retrieved chunks. Independent of the gate —
-  these measure what retrieval found, not what the gate decided to do
-  with it.
+  in-corpus questions, matched by the golden set's ``expected_papers``
+  field against each question's retrieved chunks. Independent of the
+  gate — these measure what retrieval found, not what the gate decided
+  to do with it.
 - ``false_reject_rate``: fraction of in-corpus questions the gate
   abstained on — questions the corpus could answer that the pipeline
   declined to attempt.
-- ``false_accept_rate`` (overall, and split by ``unrelated``/``adjacent``
-  subtype): fraction of out-of-corpus questions where a non-abstained
-  response's "Sources:" block cited a real paper title. There is no
-  correct paper to cite for an out-of-corpus question, so any citation is
-  a false one.
+- ``false_accept_rate`` (overall, and split by ``unrelated``/
+  ``adjacent_uncovered`` subtype): fraction of out-of-corpus questions
+  where a non-abstained response's "Sources:" block cited a real paper
+  title. There is no correct paper to cite for an out-of-corpus
+  question, so any citation is a false one.
 - ``context_survival_rate``: fraction of non-abstained questions (both
   categories) where the single closest retrieved chunk's content actually
   appears in the context string ``assemble_context()`` produced.
@@ -83,16 +83,18 @@ def load_golden_set(path: Path = GOLDEN_SET_PATH) -> list[dict]:
         return [json.loads(line) for line in f if line.strip()]
 
 
-def expected_paper_keys(entry: dict) -> list[str]:
-    """The paper key(s) a correct retrieval should surface for this question.
+# Checkpoint 4g's golden set names the meta-question's expected source
+# "synthetic_doclist", but the actual synthetic doc-list chunk built in
+# ingestion/build_index.py (unchanged, out of this checkpoint's scope)
+# tags itself with paper_key "meta" - this alias bridges that naming
+# mismatch rather than silently never matching the meta question.
+_PAPER_KEY_ALIASES = {"synthetic_doclist": "meta"}
 
-    Every question in this golden set has exactly one expected key today
-    (including the meta-question, whose expected key is the "meta"
-    sentinel used by the synthetic doc-list chunk) — this returns a list
-    in case a future golden-set question ever legitimately expects more
-    than one source paper.
-    """
-    return [entry["paper_key"]]
+
+def expected_paper_keys(entry: dict) -> list[str]:
+    """The paper key(s) a correct retrieval should surface for this
+    question, aliased to match the retrieved chunks' actual metadata."""
+    return [_PAPER_KEY_ALIASES.get(key, key) for key in entry["expected_papers"]]
 
 
 def check_false_attribution(sources_text: str, real_titles: list[str]) -> bool:
@@ -213,7 +215,9 @@ def summarize(
         "mrr": mrr,
         "false_accept_rate": false_accept_rate,
         "false_accept_rate_unrelated": false_accept_rate_for("unrelated"),
-        "false_accept_rate_adjacent": false_accept_rate_for("adjacent"),
+        "false_accept_rate_adjacent_uncovered": false_accept_rate_for(
+            "adjacent_uncovered"
+        ),
         "false_reject_rate": false_reject_rate,
         "context_survival_rate": context_survival_rate,
     }
@@ -233,8 +237,8 @@ def main():
     results_path, summary_path = result_paths(args.output_suffix)
 
     golden_set = load_golden_set()
-    in_corpus_entries = [e for e in golden_set if e["category"] == "in_corpus"]
-    out_of_corpus_entries = [e for e in golden_set if e["category"] == "out_of_corpus"]
+    in_corpus_entries = [e for e in golden_set if e["type"] == "in_corpus"]
+    out_of_corpus_entries = [e for e in golden_set if e["type"] == "out_of_corpus"]
 
     print(
         f"Evaluating {len(in_corpus_entries)} in-corpus questions "
