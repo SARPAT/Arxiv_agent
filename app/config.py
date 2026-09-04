@@ -38,19 +38,14 @@ class Settings(BaseSettings):
     generation_model: str = "nvidia/nemotron-3.5-lightning-30b-a3b"
     max_tokens: int = 512
 
-    # STALE as of the ONNX runtime switch (Checkpoint 4f): calibrated by
-    # eval/calibrate_threshold.py against bge-small-en-v1.5 run through
-    # sentence-transformers in fp32 (golden set's 50 in-corpus / 14
-    # out-of-corpus labels; full detail in eval/calibration_result.json -
-    # ROC-AUC 0.9386, sensitivity 0.84 at specificity 0.9286, target was
-    # specificity >= 0.90). Quantization and a different inference
-    # runtime produce different float values than that path, even for
-    # the same logical model, so this value is meaningless against an
-    # ONNX-built index and MUST be replaced with a fresh calibration run
-    # before the index is rebuilt and this change ships - do not deploy
-    # embedding_model/rag/embedder.py and this threshold out of sync with
-    # each other or with the committed index.
-    similarity_threshold: float = 0.433317
+    # Calibrated by eval/calibrate_threshold.py against the real ONNX
+    # bge-small-en-v1.5 embedder (Checkpoint 4f), after flushing stale
+    # embedding:*/retrieval:* cache entries left over from the previous
+    # (sentence-transformers) embedder - see app/cache.py's model-keying
+    # fix for why those were stale in the first place. Full detail in
+    # eval/calibration_result.json: ROC-AUC 0.9314, sensitivity 0.78 at
+    # specificity 0.9286 (target was specificity >= 0.90).
+    similarity_threshold: float = 0.420202
 
     retrieval_k: int = 4
     max_context_chars: int = 2500
