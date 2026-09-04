@@ -40,6 +40,8 @@ keeps this checkpoint isolated to the runtime/framework swap it's
 actually about, rather than also changing retrieval semantics.
 """
 
+import hashlib
+
 import numpy as np
 import onnxruntime as ort
 from huggingface_hub import hf_hub_download
@@ -50,6 +52,43 @@ _HF_REPO = "Xenova/bge-small-en-v1.5"
 _ONNX_SUBPATH = "onnx/model_quantized.onnx"
 _TOKENIZER_SUBPATH = "tokenizer.json"
 _MAX_SEQ_LENGTH = 512
+
+# Descriptive tag for the pooling strategy _embed() actually implements
+# below (CLS-token pooling + L2 normalization) - not read by any pooling
+# logic itself, only folded into cache_identifier()'s hash so that a
+# future change to *how* vectors are computed (not just which repo they
+# come from) still busts the cache. Keeping this in sync with _embed() is
+# manual, same as any other cache-invalidation tag - update it whenever
+# _embed()'s pooling changes.
+_POOLING_METHOD = "cls_token_l2norm"
+
+
+def cache_identifier() -> str:
+    """Identifier for ``app/cache.py``'s cache keys that changes whenever
+    this embedder's actual output-affecting config changes - the ONNX
+    subpath (e.g. a different quantization or export) or the pooling
+    method - not only when ``settings.embedding_model``'s display string
+    happens to change.
+
+    Checkpoint 4f's cache-key fix keyed on ``settings.embedding_model``
+    alone, which its own docstring flagged as an incomplete fix: that
+    logical name was (deliberately) left unchanged across the
+    sentence-transformers -> ONNX runtime swap, so a future change
+    confined to *this* module - e.g. repointing ``_ONNX_SUBPATH`` to a
+    different quantization - would again leave stale cache entries
+    silently served under an unchanged key. Hashing this module's own
+    config into the identifier closes that gap structurally: any change
+    here changes the hash, with no separate config value to remember to
+    update in step.
+
+    The HF repo name is kept as a human-readable prefix (rather than
+    folded into the hash too) so Redis keys stay legible for manual
+    inspection/debugging.
+    """
+    fingerprint = hashlib.sha256(
+        f"{_ONNX_SUBPATH}:{_POOLING_METHOD}".encode("utf-8")
+    ).hexdigest()[:10]
+    return f"{_HF_REPO}:{fingerprint}"
 
 
 class OnnxBgeEmbeddings(Embeddings):
