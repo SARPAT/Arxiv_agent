@@ -37,10 +37,17 @@ Metrics:
 threshold, calibrated by ``eval/calibrate_threshold.py`` — every question
 in this script goes through that same gate.
 
-Writes ``eval/results_checkpoint3.json`` (full per-question detail) and
-``eval/summary_checkpoint3.json`` (headline numbers).
+Writes ``eval/results_<output-suffix>.json`` (full per-question detail)
+and ``eval/summary_<output-suffix>.json`` (headline numbers), where
+``--output-suffix`` (required) names the checkpoint this run is for, e.g.
+``checkpoint4f``. Required, not defaulted: an earlier run of this script
+against Checkpoint 3's fixed ``results_checkpoint3.json`` path silently
+overwrote Checkpoint 3's own historical numbers the next time someone ran
+it for a later checkpoint — a required flag makes that impossible to
+repeat by accident.
 """
 
+import argparse
 import json
 from pathlib import Path
 
@@ -57,10 +64,17 @@ from rag.pipeline import (
 from rag.retrieval import retrieve
 
 GOLDEN_SET_PATH = Path("eval/golden_set.jsonl")
-RESULTS_PATH = Path("eval/results_checkpoint3.json")
-SUMMARY_PATH = Path("eval/summary_checkpoint3.json")
 
 RETRIEVAL_EVAL_K = 8  # covers both Recall@5 and Recall@8 from one retrieval call
+
+
+def result_paths(output_suffix: str) -> tuple[Path, Path]:
+    """Return the ``(results_path, summary_path)`` this run should write
+    to, given ``--output-suffix``."""
+    return (
+        Path(f"eval/results_{output_suffix}.json"),
+        Path(f"eval/summary_{output_suffix}.json"),
+    )
 
 
 def load_golden_set(path: Path = GOLDEN_SET_PATH) -> list[dict]:
@@ -206,6 +220,18 @@ def summarize(
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--output-suffix",
+        required=True,
+        help=(
+            "Names which checkpoint this run is for, e.g. 'checkpoint4f' - "
+            "writes eval/results_<suffix>.json and eval/summary_<suffix>.json."
+        ),
+    )
+    args = parser.parse_args()
+    results_path, summary_path = result_paths(args.output_suffix)
+
     golden_set = load_golden_set()
     in_corpus_entries = [e for e in golden_set if e["category"] == "in_corpus"]
     out_of_corpus_entries = [e for e in golden_set if e["category"] == "out_of_corpus"]
@@ -229,14 +255,14 @@ def main():
         "out_of_corpus": out_of_corpus_results,
     }
 
-    save_json(RESULTS_PATH, results)
-    save_json(SUMMARY_PATH, summary)
+    save_json(results_path, results)
+    save_json(summary_path, summary)
 
     print("\n--- Evaluation summary ---")
     for key, value in summary.items():
         print(f"  {key}: {value}")
-    print(f"\nFull detail written to {RESULTS_PATH}")
-    print(f"Summary written to {SUMMARY_PATH}")
+    print(f"\nFull detail written to {results_path}")
+    print(f"Summary written to {summary_path}")
 
 
 if __name__ == "__main__":

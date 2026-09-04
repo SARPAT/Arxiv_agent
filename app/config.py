@@ -23,15 +23,29 @@ class Settings(BaseSettings):
     # sessions.
     redis_url: str
 
-    embedding_model: str = "BAAI/bge-base-en-v1.5"
+    # Checkpoint 4e swapped bge-base (768-dim, ~440MB weights) for
+    # bge-small (384-dim, ~130MB weights), assuming model weight size was
+    # the dominant memory cost. A continuous psutil RSS trace disproved
+    # that: baseline memory climbed past 700MB within 15 seconds of
+    # process start, before any request or model load - the real cost is
+    # torch + sentence-transformers + langchain's own import/runtime
+    # footprint, largely independent of which model file sits on top of
+    # it. Checkpoint 4f keeps this same logical model but removes that
+    # framework: rag/embedder.py runs it via ONNX Runtime instead (no
+    # torch dependency at all). This string is now a logical/display
+    # name only - see rag/embedder.py for the actual ONNX model source.
+    embedding_model: str = "BAAI/bge-small-en-v1.5"
     generation_model: str = "nvidia/nemotron-3.5-lightning-30b-a3b"
     max_tokens: int = 512
 
-    # Calibrated by eval/calibrate_threshold.py against the golden set's
-    # 50 in-corpus / 14 out-of-corpus labels. Full detail in
-    # eval/calibration_result.json: ROC-AUC 0.9514, sensitivity 0.84 at
+    # Calibrated by eval/calibrate_threshold.py against the real ONNX
+    # bge-small-en-v1.5 embedder (Checkpoint 4f), after flushing stale
+    # embedding:*/retrieval:* cache entries left over from the previous
+    # (sentence-transformers) embedder - see app/cache.py's model-keying
+    # fix for why those were stale in the first place. Full detail in
+    # eval/calibration_result.json: ROC-AUC 0.9314, sensitivity 0.78 at
     # specificity 0.9286 (target was specificity >= 0.90).
-    similarity_threshold: float = 0.493409663438797
+    similarity_threshold: float = 0.420202
 
     retrieval_k: int = 4
     max_context_chars: int = 2500

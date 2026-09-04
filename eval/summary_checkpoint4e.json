@@ -1,0 +1,13 @@
+{
+  "n_in_corpus_questions": 50,
+  "n_out_of_corpus_questions": 14,
+  "n_non_abstained": 42,
+  "recall_at_5": 0.98,
+  "recall_at_8": 0.98,
+  "mrr": 0.9266666666666667,
+  "false_accept_rate": 0.07142857142857142,
+  "false_accept_rate_unrelated": 0.0,
+  "false_accept_rate_adjacent": 0.125,
+  "false_reject_rate": 0.18,
+  "context_survival_rate": 1.0
+}
