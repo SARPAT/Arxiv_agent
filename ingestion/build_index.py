@@ -91,6 +91,63 @@ TARGET_PAPERS = {
     },
 }
 
+# Quick fix (post-4g): live testing showed generic questions like "what is
+# attention mechanism" get wrongly abstained even after recalibration -
+# every chunk in the corpus is written in its source paper's technical
+# register, so there was nothing that reads like a plain-language answer
+# to match against. One verbatim plain-language overview chunk per paper,
+# same synthetic-chunk pattern as the doc-list/metadata chunks below, just
+# aimed at this different failure mode (a content gap, not a threshold
+# problem).
+PLAIN_OVERVIEWS = {
+    "attention": (
+        "What is the attention mechanism in transformers? It lets a model "
+        "decide which words in a sentence matter most when producing each "
+        "output word, instead of processing text strictly in order the way "
+        "older models did. This is the core idea behind the Transformer "
+        "architecture."
+    ),
+    "bert": (
+        "What is BERT? BERT is a language model that reads text in both "
+        "directions at once, not just left to right, so it can understand "
+        "the full context around a word. It is pretrained on large amounts "
+        "of text and then fine-tuned for specific tasks like question "
+        "answering."
+    ),
+    "rag_paper": (
+        "What is retrieval-augmented generation (RAG)? RAG is a technique "
+        "where a language model looks up relevant documents before "
+        "answering a question, instead of relying only on what it "
+        "memorized during training. This helps produce more accurate, "
+        "up-to-date answers."
+    ),
+    "mrkl": (
+        "What is MRKL? MRKL is a system design that combines a language "
+        "model with external tools like calculators or databases, so the "
+        "model can hand off tasks it is bad at, like precise math, to a "
+        "specialized tool instead of guessing."
+    ),
+    "mistral7b": (
+        "What is Mistral 7B? Mistral 7B is a compact, efficient language "
+        "model with 7 billion parameters, designed to perform "
+        "competitively with larger models while being cheaper and faster "
+        "to run."
+    ),
+    "judge": (
+        "What is LLM-as-a-judge? It is a method of using a strong language "
+        "model to evaluate and score the quality of other language "
+        "models' answers, as a faster and cheaper alternative to having "
+        "humans rate every response."
+    ),
+    "survey": (
+        "What is retrieval-augmented generation, in general? This survey "
+        "reviews how RAG systems work — retrieving relevant text and "
+        "combining it with a language model's own knowledge to answer "
+        "questions — and covers different strategies for chunking, "
+        "retrieving, and combining that text."
+    ),
+}
+
 
 def strip_references(text: str) -> str:
     matches = list(re.finditer(r"\n\s*References\s*\n", text, re.IGNORECASE))
@@ -138,7 +195,23 @@ def build_synthetic_chunks() -> list[Document]:
                 },
             )
         )
-    return [doc_list_chunk] + metadata_chunks
+
+    overview_chunks = []
+    for paper_key, text in PLAIN_OVERVIEWS.items():
+        info = TARGET_PAPERS[paper_key]
+        overview_chunks.append(
+            Document(
+                page_content=text,
+                metadata={
+                    "paper_key": paper_key,
+                    "arxiv_id": info["arxiv_id"],
+                    "Title": info["title"],
+                    "chunk_type": "plain_overview",
+                },
+            )
+        )
+
+    return [doc_list_chunk] + metadata_chunks + overview_chunks
 
 
 def main():
