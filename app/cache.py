@@ -3,11 +3,22 @@
 Three pieces of state live here: the current corpus version (used to
 invalidate cached retrieval results whenever the corpus changes), a
 query-embedding cache, and a full-retrieval-results cache. All of it is
-strictly optional from the pipeline's correctness standpoint — a cache
-miss or any Redis error falls back to live computation (embedding via
-the model, or a fresh FAISS search) rather than raising, so a cache
-outage only removes the speed benefit for that one call, never changes
-the answer or fails the request.
+strictly optional from the request-serving pipeline's correctness
+standpoint — a cache miss or any Redis error falls back to live
+computation (embedding via the model, or a fresh FAISS search) rather
+than raising, so a cache outage only removes the speed benefit for that
+one call, never changes the answer or fails the request. The one
+exception is ``increment_corpus_version()``, called by
+``ingestion/build_index.py`` rather than the request path - see its
+docstring for why a failed version bump is deliberately not swallowed
+the way everything else here is.
+
+Bumping corpus_version was originally a manual step with nothing in code
+tying it to an actual rebuild, which caused two separate debugging
+cycles where a freshly rebuilt index kept getting served stale cached
+retrieval results under the old version number - fixed by having
+``ingestion/build_index.py`` call ``increment_corpus_version()`` itself
+as the last step of a successful run, so this can no longer be forgotten.
 
 Both cache keys include ``rag.embedder.cache_identifier()``, the same
 invalidation-on-change protection ``corpus_version`` already gives against
@@ -77,11 +88,10 @@ def get_corpus_version() -> int:
 
     The first read (whenever the key doesn't exist yet) also writes 1 to
     Redis, so the version is explicit going forward rather than an
-    implicit default forever. Nothing increments this yet — there is no
-    document upload path in this checkpoint — but a future ingestion step
-    can bump it with a single ``INCR corpus:version`` call without
-    touching any caching code here, since every cache read already goes
-    through this function.
+    implicit default forever. Every cache read/write goes through this
+    (or ``increment_corpus_version()`` below), so bumping the version is
+    the only mechanism needed to invalidate stale retrieval results after
+    a corpus change - see ``increment_corpus_version()``.
     """
     try:
         raw = _client.get(CORPUS_VERSION_KEY)
@@ -92,6 +102,41 @@ def get_corpus_version() -> int:
     except redis.exceptions.RedisError:
         logger.warning("Redis unavailable reading corpus:version")
         return 1
+
+
+def increment_corpus_version() -> int:
+    """Atomically increment and return the new ``corpus:version``.
+
+    Called by ``ingestion/build_index.py`` once a rebuild has fully
+    succeeded (the new index already saved to disk) - the structural fix
+    for two separate debugging cycles where a rebuilt index kept getting
+    served stale cached retrieval results under the old corpus_version,
+    because bumping it was a manual step someone had to remember (and,
+    twice, forgot). With this, a rebuild can no longer silently leave old
+    cache entries reachable under an unchanged version number.
+
+    Deliberately does NOT degrade silently on a Redis error, unlike every
+    other function in this module: ``get_corpus_version()``'s
+    fallback-to-1 is safe because a request-time read gets a fresh chance
+    to succeed on the very next call, but a failed bump here has no such
+    retry - the caller (ingestion) must find out it didn't happen, since
+    silently swallowing exactly this error is the bug this function
+    exists to close. So ``redis.exceptions.RedisError`` is left to
+    propagate rather than caught.
+
+    Uses Redis ``INCR`` (atomic - race-free against a concurrent
+    ``get_corpus_version()`` call from a live request) rather than a
+    read-then-write, and correctly starts a nonexistent key at 1 - the
+    same default ``get_corpus_version()`` uses for a fresh corpus - so
+    this needs no special-casing for "first ever ingestion run".
+
+    Only the retrieval cache is keyed on corpus_version (see
+    ``get_cached_retrieval()``/``set_cached_retrieval()``) - the
+    embedding cache is correctly left untouched, since a query's raw
+    embedding doesn't depend on what's in the corpus, only the search
+    result does.
+    """
+    return _client.incr(CORPUS_VERSION_KEY)
 
 
 def get_cached_embedding(query: str) -> list[float] | None:
