@@ -189,25 +189,6 @@ def build_synthetic_chunks() -> list[Document]:
         metadata={"paper_key": "meta", "chunk_type": "doc_list"},
     )
 
-    # Same content as doc_list_chunk above, phrased as a natural
-    # question-and-answer like the 7 per-paper PLAIN_OVERVIEWS chunks -
-    # added alongside it (not replacing it) for the same content-gap
-    # reason: a bare "Available Documents:" list chunk doesn't read like
-    # an answer to a conversationally-phrased question, e.g. golden_set's
-    # own meta question, "What papers or documents are available in this
-    # system's collection?". Tagged the same chunk_type ("doc_list") as
-    # the bare-list chunk, not "plain_overview" - both describe the doc
-    # list itself, just in two different phrasings, whereas
-    # "plain_overview" is specifically the per-paper chunks below.
-    doc_list_qa_chunk = Document(
-        page_content=(
-            "What papers or documents are available in this system's "
-            "collection? This system's collection includes the following "
-            f"papers: {_doc_list_sentence()}."
-        ),
-        metadata={"paper_key": "meta", "chunk_type": "doc_list"},
-    )
-
     metadata_chunks = []
     for paper_key, info in TARGET_PAPERS.items():
         content = (
@@ -241,7 +222,29 @@ def build_synthetic_chunks() -> list[Document]:
             )
         )
 
-    return [doc_list_chunk, doc_list_qa_chunk] + metadata_chunks + overview_chunks
+    # Q&A-phrased counterpart to doc_list_chunk above, added alongside it
+    # (not replacing it) for the same content-gap reason as the 7
+    # per-paper PLAIN_OVERVIEWS chunks: a bare "Available Documents:" list
+    # doesn't read like an answer to a conversationally-phrased question,
+    # e.g. golden_set's own meta question, "What papers or documents are
+    # available in this system's collection?". Grouped under chunk_type
+    # "plain_overview" (not "doc_list") since it serves that same Q&A
+    # purpose as the other 7 - it just isn't per-paper, so it's built
+    # directly here rather than via PLAIN_OVERVIEWS/TARGET_PAPERS like
+    # they are. arxiv_id is None: unlike a per-paper overview, this chunk
+    # isn't about any single arXiv paper.
+    overview_chunks.append(
+        Document(
+            page_content=(
+                "What papers or documents are available in this system's "
+                "collection? This system's collection includes the "
+                f"following papers: {_doc_list_sentence()}."
+            ),
+            metadata={"paper_key": "meta", "arxiv_id": None, "chunk_type": "plain_overview"},
+        )
+    )
+
+    return [doc_list_chunk] + metadata_chunks + overview_chunks
 
 
 def main():
