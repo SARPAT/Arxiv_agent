@@ -39,6 +39,18 @@ hashing that module's actual output-affecting config (the ONNX subpath
 and pooling method) instead of relying on a separately-maintained display
 string - see its docstring in ``rag/embedder.py``.
 
+The retrieval cache key additionally folds in
+``rag.generation.response_cache_identifier()`` - a hash of the generation
+system prompt and model name - so a change to either invalidates prior
+retrieval entries without a manual flush. This is the same class of gap
+one level further downstream: the key encoded the corpus/embedder/query
+but nothing about generation, so a prompt or model change (e.g. removing
+the confidence gate and rewriting the prompt) left stale entries
+reachable under an unchanged key until someone flushed by hand. The
+embedding cache key does NOT carry this - a query's raw embedding doesn't
+depend on the generation config, only the retrieval result's downstream
+use does.
+
 This module knows nothing about ``rag/``'s ``Document`` type on purpose:
 callers pass and receive plain JSON-safe data (embedding vectors as
 ``list[float]``, retrieved chunks as ``{"page_content": ..., "metadata":
@@ -56,6 +68,7 @@ import redis
 from app.config import settings
 from app.json_utils import json_dumps_safe
 from rag.embedder import cache_identifier
+from rag.generation import response_cache_identifier
 
 logger = logging.getLogger(__name__)
 
@@ -167,8 +180,16 @@ def set_cached_embedding(query: str, vector: list[float]) -> None:
 def get_cached_retrieval(query: str, corpus_version: int) -> dict | None:
     """Return the cached ``{"chunks": [...], "scores": [...]}`` retrieval
     result for ``query`` at ``corpus_version``, or ``None`` on a cache
-    miss or Redis error."""
-    key = f"retrieval:{cache_identifier()}:{corpus_version}:{_query_hash(query)}"
+    miss or Redis error.
+
+    The key folds in ``response_cache_identifier()`` (the generation
+    prompt + model fingerprint) alongside ``corpus_version`` and the
+    embedder identifier, so a prompt/model change invalidates prior
+    entries without a manual flush - see ``rag/generation.py``."""
+    key = (
+        f"retrieval:{cache_identifier()}:{response_cache_identifier()}:"
+        f"{corpus_version}:{_query_hash(query)}"
+    )
     try:
         raw = _client.get(key)
     except redis.exceptions.RedisError:
@@ -185,8 +206,13 @@ def set_cached_retrieval(
     query: str, corpus_version: int, chunks: list[dict], scores: list[float]
 ) -> None:
     """Write a retrieval result for ``query`` at ``corpus_version`` to the
-    retrieval cache."""
-    key = f"retrieval:{cache_identifier()}:{corpus_version}:{_query_hash(query)}"
+    retrieval cache. Key construction mirrors ``get_cached_retrieval()`` -
+    including ``response_cache_identifier()`` - so a write and its read
+    land on the same key only while the generation config is unchanged."""
+    key = (
+        f"retrieval:{cache_identifier()}:{response_cache_identifier()}:"
+        f"{corpus_version}:{_query_hash(query)}"
+    )
     value = json_dumps_safe({"chunks": chunks, "scores": scores})
     try:
         _client.set(key, value, ex=RETRIEVAL_TTL_SECONDS)
@@ -296,3 +322,75 @@ if __name__ == "__main__":
     finally:
         embedder_module._ONNX_SUBPATH = original_subpath
     assert embedder_module.cache_identifier() == baseline
+
+    # A generation prompt/model change must invalidate the RETRIEVAL cache
+    # (the gap that masked the gate-removal change behind stale entries),
+    # but must NOT touch the EMBEDDING cache (a query's embedding doesn't
+    # depend on generation config). Same sys.modules[__name__] patch
+    # rationale as above.
+    _client.flushall()
+    original_resp = this_module.response_cache_identifier
+    try:
+        this_module.response_cache_identifier = lambda: "gen-a"
+        set_cached_embedding("q2", [3.0, 4.0])
+        set_cached_retrieval(
+            "q2",
+            corpus_version=1,
+            chunks=[{"page_content": "c", "metadata": {}}],
+            scores=[0.2],
+        )
+
+        this_module.response_cache_identifier = lambda: "gen-b"
+        assert get_cached_retrieval("q2", corpus_version=1) is None, (
+            "a different response_cache_identifier() must not see gen-a's "
+            "cached retrieval"
+        )
+        assert get_cached_embedding("q2") == [3.0, 4.0], (
+            "the embedding cache key must NOT depend on generation config - "
+            "it should still hit across a prompt/model change"
+        )
+        print(
+            "PASSED: a generation prompt/model change invalidates the retrieval "
+            "cache but leaves the embedding cache reachable."
+        )
+
+        this_module.response_cache_identifier = lambda: "gen-a"
+        assert get_cached_retrieval("q2", corpus_version=1) is not None
+        print(
+            "PASSED: switching back to the original response_cache_identifier() "
+            "still finds its own retrieval entry."
+        )
+    finally:
+        this_module.response_cache_identifier = original_resp
+
+    # response_cache_identifier() itself must actually change when the
+    # system prompt or the generation model name changes - exercise the
+    # real function against patched rag.generation module state, the exact
+    # kind of change (prompt rewrite / model swap) that motivated this.
+    import rag.generation as generation_module
+
+    resp_baseline = generation_module.response_cache_identifier()
+
+    original_prompt = generation_module.SYSTEM_PROMPT
+    try:
+        generation_module.SYSTEM_PROMPT = original_prompt + "\n(extra rule)"
+        assert generation_module.response_cache_identifier() != resp_baseline, (
+            "response_cache_identifier() must change when SYSTEM_PROMPT changes"
+        )
+    finally:
+        generation_module.SYSTEM_PROMPT = original_prompt
+    assert generation_module.response_cache_identifier() == resp_baseline
+
+    original_model = generation_module.settings.generation_model
+    try:
+        generation_module.settings.generation_model = "some/other-model"
+        assert generation_module.response_cache_identifier() != resp_baseline, (
+            "response_cache_identifier() must change when the model name changes"
+        )
+    finally:
+        generation_module.settings.generation_model = original_model
+    assert generation_module.response_cache_identifier() == resp_baseline
+    print(
+        "PASSED: response_cache_identifier() changes on a SYSTEM_PROMPT or "
+        "generation_model change, and is stable otherwise."
+    )
