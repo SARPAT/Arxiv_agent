@@ -89,7 +89,16 @@ def _is_retryable(exc: Exception) -> bool:
     return "429" in message or "rate limit" in lowered
 
 
-SYSTEM_PROMPT = """You are a research assistant answering questions about a \
+# The exact provenance sentence the model must include when — and only
+# when — it answers from general knowledge rather than the retrieved
+# corpus. rag/pipeline.py detects this marker to decide whether the
+# structured done-event sources should be empty (general knowledge) or
+# drawn from the retrieved chunk metadata (grounded); see its docstring.
+# Defined as a module constant, and embedded into SYSTEM_PROMPT below, so
+# the instruction and the detector can't drift apart.
+GENERAL_KNOWLEDGE_MARKER = "Based on general knowledge, not the provided papers."
+
+SYSTEM_PROMPT = f"""You are a research assistant answering questions about a \
 fixed collection of arXiv papers. You will always be given some retrieved \
 context pulled from those papers along with a question. The context is \
 retrieved automatically for every question, so it is NOT a guarantee that \
@@ -98,8 +107,7 @@ Follow these rules:
 
 1. Treat the retrieved context as your primary source of truth, and prefer \
 it over anything else you know, WHENEVER it actually addresses the \
-question. When it does, ground your answer in it and cite the paper(s) it \
-came from.
+question. When it does, ground your answer in it.
 2. If the retrieved context does NOT address the question, ignore it \
 entirely and answer from your own general knowledge. Do not force an answer \
 out of unrelated context, and do not mention the irrelevant context or \
@@ -108,17 +116,16 @@ knowledge. (For example, the context will still contain paper excerpts even \
 if the question is "who is Ronaldo"; in that case the excerpts are \
 irrelevant and you should simply answer about Ronaldo from general \
 knowledge.)
-3. Any claim not grounded in the retrieved context must be explicitly \
-labeled as general knowledge (e.g. "Based on general knowledge (not the \
-provided papers), ..."). Never attribute general knowledge to a document, \
-and never invent, guess, or fabricate a citation. Only cite a paper if its \
-content is actually present in the retrieved context you were given.
-4. End every response with a "Sources:" block:
-   - When your answer is grounded in the corpus, list the exact paper \
-title(s), as given in the context, that support it.
-   - When your answer is general knowledge not found in the corpus, the \
-only entry under "Sources:" must be exactly: "General knowledge of the \
-language model (not found in the corpus)."
+3. Never invent, guess, or fabricate a citation, and never attribute \
+general knowledge to a paper.
+4. Do NOT write your own "Sources:" section, sources list, or citation \
+footer. The application appends the source papers automatically from the \
+retrieved context, so any "Sources:" block you write would be shown twice. \
+Just write the answer itself and stop.
+5. Only when your answer is general knowledge rather than the provided \
+papers, make that provenance clear by including this exact sentence \
+somewhere in your answer: "{GENERAL_KNOWLEDGE_MARKER}" When your answer is \
+grounded in the retrieved context, do NOT include that sentence.
 """
 
 
