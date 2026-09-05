@@ -38,24 +38,15 @@ class Settings(BaseSettings):
     generation_model: str = "nvidia/nemotron-3.5-lightning-30b-a3b"
     max_tokens: int = 512
 
-    # Recalibrated post-index-rebuild (PR #19: the torch-index/ONNX-embedder
-    # mismatch fix, plus the new meta plain_overview chunk), from
-    # eval/calibrate_threshold.py's tradeoff curve at the same 70%
-    # specificity target used since Checkpoint 4g - not re-derived from
-    # scratch, since the 4g rationale for that target (the "unrelated"
-    # out-of-corpus category already saturated at 100% specificity even at
-    # the loosest tested target, so a stricter target only trades away
-    # real-question sensitivity for marginal "adjacent_uncovered"
-    # protection) is about the shape of the tradeoff, not the specific
-    # embedder/index pairing, and hasn't been re-examined against the new
-    # curve. The previous value (0.500706) was calibrated against the
-    # mismatched pairing PR #19 fixes and should not be assumed comparable.
-    #
-    # NOTE: eval/calibration_curve.json and eval/calibration_result.json
-    # in this repo are still the pre-rebuild artifacts as of this commit -
-    # this value has not yet been reconciled against a committed curve
-    # file reflecting the same run it came from.
-    similarity_threshold: float = 0.5035042762756348
+    # No similarity_threshold: the confidence gate that used to consume it
+    # was removed (see rag/pipeline.py). On dense-only retrieval the raw L2
+    # score bands for correct in-corpus answers and out-of-corpus junk
+    # overlapped too much for any single threshold to separate them without
+    # rejecting legitimate answers, so the pipeline now always answers and
+    # relies on the system prompt for provenance labeling instead. The
+    # calibration tooling (eval/calibrate_threshold.py) is kept for the
+    # eventual hybrid-search recalibration but no longer feeds any runtime
+    # setting.
 
     retrieval_k: int = 4
     max_context_chars: int = 2500

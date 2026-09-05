@@ -1,10 +1,21 @@
-"""Calibrate the confidence gate's similarity threshold against the golden set.
+"""Measure how separable in-corpus and out-of-corpus questions are by
+top-1 retrieval distance, against the golden set.
+
+NOTE: the confidence gate this was built to calibrate has been removed
+from the runtime (see rag/pipeline.py) - dense-only retrieval didn't
+separate the two classes well enough for any single threshold to gate on
+without rejecting real answers. This script is deliberately kept intact
+but unwired: it no longer feeds any runtime setting, and there is no
+longer a ``similarity_threshold`` in app/config.py to copy a value into.
+It stays because the same separability measurement is what the eventual
+hybrid-search work will use to decide whether a gate becomes viable
+again - at which point this is the tool to re-run.
 
 Retrieves the top-1 chunk for every golden-set question, pairs its raw
-FAISS L2 distance with the question's true label (1 = in-corpus, should
-answer; 0 = out-of-corpus, should abstain), and reports sensitivity and
-specificity at each of several candidate specificity targets rather than
-picking one target and one threshold automatically.
+FAISS L2 distance with the question's true label (1 = in-corpus, 0 =
+out-of-corpus), and reports sensitivity and specificity at each of
+several candidate specificity targets rather than picking one target and
+one threshold automatically.
 
 Checkpoint 4g reworked this from a single fixed-specificity-target
 selection (originally >=0.90) to a full tradeoff curve, for two reasons
@@ -18,12 +29,12 @@ found from live testing and from the original golden set's small size:
    set (see golden_set.jsonl) gives 2% resolution instead.
 
 This script deliberately does NOT select a final threshold or write one
-into app/config.py - that choice happens in review, after seeing the real
-curve, not automatically here. It does still additionally compute and
-save the same single-value output this script produced before
-(``eval/calibration_result.json``, at the historical 90% target), since
-that format is still useful for whatever target is eventually chosen; the
-curve (``eval/calibration_curve.json``) is the new primary deliverable.
+anywhere - it only reports the curve for review. (It never wrote to
+app/config.py even when the gate existed; now there is no runtime
+threshold at all.) It still additionally computes and saves the same
+single-value output this script produced before
+(``eval/calibration_result.json``, at the historical 90% target); the
+curve (``eval/calibration_curve.json``) is the primary deliverable.
 
 The ROC-AUC this script reports is a diagnostic on how separable the two
 classes are by top-1 distance alone — it is not itself the threshold
@@ -35,9 +46,9 @@ new dependency for one calibration script.
 
 Requires network access (the embedding model and the persisted FAISS
 index) — this cannot run in an environment with no route to Hugging Face.
-Run this externally, review the printed curve and eval/calibration_curve.json,
-then manually copy the chosen threshold into app/config.py's
-similarity_threshold.
+Run this externally and review the printed curve and
+eval/calibration_curve.json. Its output no longer flows into the runtime
+(there is no gate to feed); it is analysis for the hybrid-search work.
 """
 
 from pathlib import Path
@@ -80,8 +91,10 @@ def roc_points(
 ) -> list[tuple[float, float, float]]:
     """``(threshold, fpr, tpr)`` triples across every candidate threshold.
 
-    Decision rule: predict in-corpus (proceed) when ``score <= threshold``,
-    matching ``gate.should_abstain``'s use of the raw distance directly.
+    Decision rule modeled here: predict in-corpus (proceed) when
+    ``score <= threshold`` on the raw L2 distance directly - the rule the
+    removed confidence gate applied, kept here so this separability
+    analysis still reflects what a distance threshold would have done.
     """
     n_pos = sum(labels)
     n_neg = len(labels) - n_pos
@@ -250,9 +263,9 @@ def main():
     )
     print(f"\nFull curve written to {CALIBRATION_CURVE_PATH}")
     print(
-        "No threshold has been selected or written into app/config.py - "
-        "review the curve above and choose a target, then update "
-        "app/config.py's similarity_threshold manually."
+        "This is separability analysis only - the confidence gate was "
+        "removed from the runtime, so no threshold is selected or written "
+        "anywhere. Re-run this if hybrid search makes a gate viable again."
     )
 
     # Historical single-value output, kept for whatever target is

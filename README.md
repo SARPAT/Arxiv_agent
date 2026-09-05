@@ -61,3 +61,10 @@ building on 4e's. Checkpoint 4f's own numbers require re-running
 `eval/run_eval.py --output-suffix checkpoint4f` for real, which needs
 network access to Hugging Face and arXiv that this sandbox does not have.
 This table gets filled in once that happens.
+
+Note: the confidence gate was later removed (the pipeline now always
+answers and labels provenance via the system prompt), so `false_reject_rate`
+is no longer a metric `eval/run_eval.py` reports — the pipeline can't
+reject a question anymore. `false_accept_rate` remains and, with the gate
+gone, is now the primary guard the eval measures: it catches an
+out-of-corpus answer falsely attributed to a real paper.

@@ -1,41 +1,39 @@
-"""Evaluate the gated RAG pipeline against eval/golden_set.jsonl.
+"""Evaluate the RAG pipeline against eval/golden_set.jsonl.
 
 Calls ``rag/pipeline.py`` and ``rag/retrieval.py`` directly, in-process.
 ``golden_set.jsonl`` is read as-is and never modified by this script.
 
-Every question passes through the confidence gate (``rag/gate.py``): a
-question can be abstained on regardless of category, so this script
-tracks abstain/proceed decisions across both categories rather than
-splitting gate evaluation off from category-specific correctness checks.
+There is no longer a confidence gate: the pipeline always retrieves top-k
+and always generates (the gate and its abstain/proceed decision were
+removed - see ``rag/pipeline.py``). So this script no longer tracks
+abstention, and the gate-derived metrics it used to report
+(``false_reject_rate``, ``n_non_abstained``) are gone with it. What
+remains measures the two things the no-gate pipeline can still get wrong:
+whether retrieval surfaces the right paper, and whether the model
+falsely attributes an out-of-corpus answer to a real paper.
 
-In-corpus questions are evaluated with retrieval and gate/context-assembly
-checks only — no generation call, since neither ``context_survival_rate``
-nor ``false_reject_rate`` depends on what the model would say. Generation
-only runs for out-of-corpus questions the gate doesn't abstain on, since
-that's the only case where a false attribution is even possible.
+In-corpus questions are evaluated on retrieval and context-assembly only
+- no generation call, since retrieval quality and context survival don't
+depend on what the model would say. Generation runs for every
+out-of-corpus question, since that's the only case a false attribution
+can occur.
 
 Metrics:
 
 - ``recall_at_5`` / ``recall_at_8`` / ``mrr``: retrieval quality on
   in-corpus questions, matched by the golden set's ``expected_papers``
-  field against each question's retrieved chunks. Independent of the
-  gate — these measure what retrieval found, not what the gate decided
-  to do with it.
-- ``false_reject_rate``: fraction of in-corpus questions the gate
-  abstained on — questions the corpus could answer that the pipeline
-  declined to attempt.
+  field against each question's retrieved chunks.
 - ``false_accept_rate`` (overall, and split by ``unrelated``/
   ``adjacent_uncovered`` subtype): fraction of out-of-corpus questions
-  where a non-abstained response's "Sources:" block cited a real paper
-  title. There is no correct paper to cite for an out-of-corpus
-  question, so any citation is a false one.
-- ``context_survival_rate``: fraction of non-abstained questions (both
-  categories) where the single closest retrieved chunk's content actually
-  appears in the context string ``assemble_context()`` produced.
-
-``settings.similarity_threshold`` (see ``app/config.py``) is the gate's
-threshold, calibrated by ``eval/calibrate_threshold.py`` — every question
-in this script goes through that same gate.
+  whose response "Sources:" block cited a real paper title. There is no
+  correct paper to cite for an out-of-corpus question, so any citation is
+  a false one - and with the gate gone, the system prompt's
+  general-knowledge labeling is the only thing standing between an
+  out-of-corpus question and a false attribution, which is exactly what
+  this metric now measures.
+- ``context_survival_rate``: fraction of all questions where the single
+  closest retrieved chunk's content actually appears in the context
+  string ``assemble_context()`` produced.
 
 Writes ``eval/results_<output-suffix>.json`` (full per-question detail)
 and ``eval/summary_<output-suffix>.json`` (headline numbers), where
@@ -58,7 +56,7 @@ from rag.pipeline import (
     REAL_PAPER_TITLES,
     assemble_context,
     extract_sources_block,
-    retrieve_and_gate,
+    retrieve_context,
     run_pipeline,
 )
 from rag.retrieval import retrieve
@@ -115,8 +113,8 @@ def top_chunk_survived(top_doc: Document, context: str) -> bool:
 
 
 def evaluate_in_corpus(entry: dict) -> dict:
-    """Retrieval metrics plus gate/context-assembly outcome for one
-    in-corpus question. No generation call is made."""
+    """Retrieval metrics plus context-assembly outcome for one in-corpus
+    question. No generation call is made."""
     expected = set(expected_paper_keys(entry))
     retrieved = retrieve(entry["question"], k=RETRIEVAL_EVAL_K)
     retrieved_keys = [doc.metadata.get("paper_key") for doc, _score in retrieved]
@@ -130,11 +128,9 @@ def evaluate_in_corpus(entry: dict) -> dict:
             reciprocal_rank = 1.0 / rank
             break
 
-    docs, top1_score, abstained = retrieve_and_gate(entry["question"])
-    survived = None
-    if not abstained:
-        context = assemble_context(docs)
-        survived = top_chunk_survived(docs[0], context)
+    docs, top1_score = retrieve_context(entry["question"])
+    context = assemble_context(docs)
+    survived = top_chunk_survived(docs[0], context)
 
     return {
         "id": entry["id"],
@@ -146,23 +142,20 @@ def evaluate_in_corpus(entry: dict) -> dict:
         "hit_at_8": hit_at_8,
         "reciprocal_rank": reciprocal_rank,
         "top1_score": top1_score,
-        "abstained": abstained,
         "context_survived_top_chunk": survived,
     }
 
 
 def evaluate_out_of_corpus(entry: dict) -> dict:
-    """Full gated pipeline (including generation, when not abstained) for
-    one out-of-corpus question, checked for false attribution."""
+    """Full pipeline (including generation) for one out-of-corpus question,
+    checked for false attribution. Every question generates now - there is
+    no gate - so this is the metric that catches the system prompt failing
+    to label an out-of-corpus answer as general knowledge."""
     result = run_pipeline(entry["question"])
 
-    survived = None
-    false_accept = False
-    sources_text = ""
-    if not result.abstained:
-        survived = top_chunk_survived(result.docs[0], result.context)
-        sources_text = extract_sources_block(result.answer)
-        false_accept = check_false_attribution(sources_text, REAL_PAPER_TITLES)
+    survived = top_chunk_survived(result.docs[0], result.context)
+    sources_text = extract_sources_block(result.answer)
+    false_accept = check_false_attribution(sources_text, REAL_PAPER_TITLES)
 
     return {
         "id": entry["id"],
@@ -170,7 +163,6 @@ def evaluate_out_of_corpus(entry: dict) -> dict:
         "category": "out_of_corpus",
         "subtype": entry["subtype"],
         "top1_score": result.top1_score,
-        "abstained": result.abstained,
         "response": result.answer,
         "sources_block": sources_text,
         "context_survived_top_chunk": survived,
@@ -186,7 +178,6 @@ def summarize(
     recall_at_5 = sum(r["hit_at_5"] for r in in_corpus_results) / n_ic
     recall_at_8 = sum(r["hit_at_8"] for r in in_corpus_results) / n_ic
     mrr = sum(r["reciprocal_rank"] for r in in_corpus_results) / n_ic
-    false_reject_rate = sum(r["abstained"] for r in in_corpus_results) / n_ic
 
     n_ooc = len(out_of_corpus_results)
     false_accept_rate = sum(r["false_accept"] for r in out_of_corpus_results) / n_ooc
@@ -197,19 +188,18 @@ def summarize(
             return 0.0
         return sum(r["false_accept"] for r in subset) / len(subset)
 
+    # Every question now proceeds to context assembly (no gate), so this is
+    # measured over all of them rather than only the non-abstained subset.
     all_results = in_corpus_results + out_of_corpus_results
-    non_abstained = [r for r in all_results if not r["abstained"]]
     context_survival_rate = (
-        sum(r["context_survived_top_chunk"] for r in non_abstained)
-        / len(non_abstained)
-        if non_abstained
+        sum(r["context_survived_top_chunk"] for r in all_results) / len(all_results)
+        if all_results
         else 0.0
     )
 
     return {
         "n_in_corpus_questions": n_ic,
         "n_out_of_corpus_questions": n_ooc,
-        "n_non_abstained": len(non_abstained),
         "recall_at_5": recall_at_5,
         "recall_at_8": recall_at_8,
         "mrr": mrr,
@@ -218,7 +208,6 @@ def summarize(
         "false_accept_rate_adjacent_uncovered": false_accept_rate_for(
             "adjacent_uncovered"
         ),
-        "false_reject_rate": false_reject_rate,
         "context_survival_rate": context_survival_rate,
     }
 
@@ -242,13 +231,13 @@ def main():
 
     print(
         f"Evaluating {len(in_corpus_entries)} in-corpus questions "
-        "(retrieval + gate, no generation)..."
+        "(retrieval + context assembly, no generation)..."
     )
     in_corpus_results = [evaluate_in_corpus(e) for e in in_corpus_entries]
 
     print(
         f"Evaluating {len(out_of_corpus_entries)} out-of-corpus questions "
-        "(full gated pipeline)..."
+        "(full pipeline including generation)..."
     )
     out_of_corpus_results = [evaluate_out_of_corpus(e) for e in out_of_corpus_entries]
 
