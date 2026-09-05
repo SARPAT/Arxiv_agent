@@ -85,7 +85,6 @@ def _stream_chat(session_id: str, message: str) -> Iterator[str]:
                 "done",
                 {
                     "sources": event["sources"],
-                    "abstained": event["abstained"],
                     "session_id": session_id,
                 },
             )

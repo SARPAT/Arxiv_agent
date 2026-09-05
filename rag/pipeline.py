@@ -1,8 +1,21 @@
-"""Orchestrates the retrieve -> gate -> assemble context -> generate RAG pipeline.
+"""Orchestrates the retrieve -> assemble context -> generate RAG pipeline.
 
 This is the single entry point the rest of the app (and the eval harness)
-should call — it wires ``retrieval.py``, ``gate.py``, and ``generation.py``
-together and owns no state of its own beyond what's passed in as arguments.
+should call — it wires ``retrieval.py`` and ``generation.py`` together and
+owns no state of its own beyond what's passed in as arguments.
+
+There is no confidence gate: retrieval's top-k always proceeds to
+generation, and the system prompt (see ``rag/generation.py``) is what
+governs how the model uses that context — grounding answers in it when
+relevant, ignoring it and answering from clearly-labeled general
+knowledge when it isn't. The gate that used to sit here (a calibrated L2
+distance threshold that abstained on low-confidence retrieval) was
+removed: on dense-only retrieval the score bands for correct in-corpus
+answers and out-of-corpus junk overlapped too much for any single
+threshold to separate them without rejecting legitimate answers. The
+calibration tooling that measured this (``eval/calibrate_threshold.py``,
+``eval/calibration_*.json``) is kept for the eventual hybrid-search
+recalibration, just no longer wired into the runtime.
 """
 
 import logging
@@ -15,13 +28,10 @@ from langchain_core.documents import Document
 
 from app.config import settings
 from ingestion.build_index import TARGET_PAPERS
-from rag.gate import should_abstain
 from rag.generation import GenerationError, generate, generate_stream
 from rag.retrieval import retrieve
 
 logger = logging.getLogger(__name__)
-
-ABSTAIN_RESPONSE = "I don't have information on that in my corpus.\n\nSources: none"
 
 REAL_PAPER_TITLES = [info["title"] for info in TARGET_PAPERS.values()]
 
@@ -138,51 +148,40 @@ class PipelineResult:
     the eval harness) that need more than just the final answer text."""
 
     answer: str
-    abstained: bool
     top1_score: float
     context: str
     docs: list[Document]
 
 
-def retrieve_and_gate(query: str) -> tuple[list[Document], float, bool]:
-    """Retrieve the top ``settings.retrieval_k`` chunks and apply the
-    confidence gate.
+def retrieve_context(query: str) -> tuple[list[Document], float]:
+    """Retrieve the top ``settings.retrieval_k`` chunks for ``query``.
 
-    Returns ``(docs, top1_score, abstained)``. ``top1_score`` is the
-    closest chunk's raw distance — it's the same value regardless of how
-    many total documents are requested, since it's always whichever single
-    result is nearest.
+    Returns ``(docs, top1_score)``. Every query proceeds to generation —
+    there is no gate — so this no longer makes an abstain/proceed decision;
+    it just retrieves. ``top1_score`` (the closest chunk's raw L2 distance)
+    is still returned as telemetry, not as a gate input: it's reported in
+    the ``done`` event and by the eval harness, but nothing branches on it.
     """
     retrieved = retrieve(query, k=settings.retrieval_k)
     docs = [doc for doc, _score in retrieved]
     top1_score = retrieved[0][1]
-    return docs, top1_score, should_abstain(top1_score)
+    return docs, top1_score
 
 
 def run_pipeline(
     query: str, history: list[dict[str, str]] | None = None
 ) -> PipelineResult:
-    """Run one full turn of the RAG pipeline, including the confidence gate.
+    """Run one full turn of the RAG pipeline.
 
-    If the gate abstains, context assembly and generation are both
-    skipped — no model call is made, and ``ABSTAIN_RESPONSE`` is returned
-    as-is.
+    Retrieval's top-k always proceeds to generation; the system prompt (see
+    ``rag/generation.py``) is what decides whether to ground the answer in
+    the retrieved context or answer from clearly-labeled general knowledge.
     """
-    docs, top1_score, abstained = retrieve_and_gate(query)
-    if abstained:
-        return PipelineResult(
-            answer=ABSTAIN_RESPONSE,
-            abstained=True,
-            top1_score=top1_score,
-            context="",
-            docs=docs,
-        )
-
+    docs, top1_score = retrieve_context(query)
     context = assemble_context(docs)
     answer = generate(query, context, history=history)
     return PipelineResult(
         answer=answer,
-        abstained=False,
         top1_score=top1_score,
         context=context,
         docs=docs,
@@ -197,32 +196,21 @@ def run_pipeline_stream(
     Yields a sequence of small event dicts:
 
     - ``{"type": "token", "delta": <str>}`` for each piece of generated text
-    - exactly one ``{"type": "done", "sources": [...], "abstained": <bool>,
-      "top1_score": <float>}`` once the answer (or the abstain response)
-      is complete, **or** exactly one ``{"type": "error", "message": <str>}``
-      instead of "done" if generation fails (see ``rag/generation.py``'s
-      retry/timeout handling) — either before any token was sent, or
-      mid-stream after some already were. Callers must not treat a
-      "token"-then-nothing-else sequence as a silent success: an "error"
-      event always follows a failed generation, "done" always follows a
-      successful one, and exactly one of the two terminates every call
-      that reaches generation at all.
+    - exactly one ``{"type": "done", "sources": [...], "top1_score": <float>}``
+      once the answer is complete, **or** exactly one
+      ``{"type": "error", "message": <str>}`` instead of "done" if
+      generation fails (see ``rag/generation.py``'s retry/timeout handling)
+      — either before any token was sent, or mid-stream after some already
+      were. Callers must not treat a "token"-then-nothing-else sequence as a
+      silent success: an "error" event always follows a failed generation,
+      "done" always follows a successful one, and exactly one of the two
+      terminates every call.
 
-    The abstain path yields ``ABSTAIN_RESPONSE`` as a single "token" event
-    followed by the same "done" shape a real answer produces, so callers
-    don't need a separate case for it.
+    Every query generates — there is no abstain path — so ``sources`` in the
+    ``done`` event reflects what the finished answer actually cited (which
+    may be the general-knowledge disclaimer line, carrying no paper title).
     """
-    docs, top1_score, abstained = retrieve_and_gate(query)
-
-    if abstained:
-        yield {"type": "token", "delta": ABSTAIN_RESPONSE}
-        yield {
-            "type": "done",
-            "sources": [],
-            "abstained": True,
-            "top1_score": top1_score,
-        }
-        return
+    docs, top1_score = retrieve_context(query)
 
     context = assemble_context(docs)
     accumulated = []
@@ -237,19 +225,21 @@ def run_pipeline_stream(
     full_text = "".join(accumulated)
     sources = extract_cited_sources(full_text)
     if not sources:
-        # Reached only on the non-abstain path, where a citation is expected.
-        # `repr()` rather than the plain string, so any invisible or unusual
-        # characters that a live streamed response contains are visible in
-        # the log line instead of silently blending into normal whitespace.
-        logger.warning(
-            "extract_cited_sources() found no citations in a non-abstained "
-            "response; raw text: %r",
+        # No corpus paper cited. This is expected and correct for a general-
+        # knowledge answer (its "Sources:" block carries the disclaimer line,
+        # not a paper title), so it's no longer treated as anomalous - but a
+        # corpus-grounded answer that failed to cite would also land here, so
+        # it's logged at INFO for visibility. `repr()` rather than the plain
+        # string, so any invisible or unusual characters in a live streamed
+        # response are visible instead of blending into normal whitespace.
+        logger.info(
+            "extract_cited_sources() found no corpus paper cited (expected for "
+            "a general-knowledge answer); raw text: %r",
             full_text,
         )
     yield {
         "type": "done",
         "sources": sources,
-        "abstained": False,
         "top1_score": top1_score,
     }
 

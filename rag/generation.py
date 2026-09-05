@@ -2,9 +2,13 @@
 
 Wraps ``ChatNVIDIA`` with the system prompt that governs how the model is
 allowed to use retrieved context, and constructs the message list sent to
-the model for a single turn. Whether to call this module at all — based
-on retrieval confidence — is decided upstream, in ``rag/pipeline.py`` and
-``rag/gate.py``; this module always generates when asked.
+the model for a single turn. This module is always called — there is no
+confidence gate deciding whether to generate (that was removed; see
+``rag/pipeline.py``). Because retrieval's top-k always reaches the model
+even for a question the corpus can't answer, the system prompt below
+carries the full weight of provenance: grounding answers in the context
+when it's relevant, and ignoring it in favor of clearly-labeled general
+knowledge when it isn't.
 
 Every call to the model goes through a timeout (``GENERATION_TIMEOUT_SECONDS``
 per attempt) and a fixed-backoff retry (``MAX_RETRIES`` attempts beyond the
@@ -85,22 +89,35 @@ def _is_retryable(exc: Exception) -> bool:
 
 
 SYSTEM_PROMPT = """You are a research assistant answering questions about a \
-fixed collection of arXiv papers. You will be given retrieved context \
-pulled from those papers along with a question. Follow these rules:
+fixed collection of arXiv papers. You will always be given some retrieved \
+context pulled from those papers along with a question. The context is \
+retrieved automatically for every question, so it is NOT a guarantee that \
+the context is relevant — it may have nothing to do with what was asked. \
+Follow these rules:
 
-1. Treat the retrieved context as your primary source of truth. Prefer it \
-over anything else you know whenever it's relevant to the question.
-2. If you use general knowledge that is not supported by the retrieved \
-context, say so explicitly in the answer (e.g. "based on general \
-knowledge, not the provided documents, ...").
-3. Never attribute general knowledge to a document, and never invent or \
-guess a citation. Only cite a document if its content is actually present \
-in the retrieved context you were given.
-4. End every response with a "Sources:" block. List the exact document \
-titles (as given in the context) that support your answer. If no document \
-in the context actually supports the answer, write a single disclaimer \
-bullet under "Sources:" saying the answer relies on general knowledge, \
-not on the provided documents, instead of listing a title.
+1. Treat the retrieved context as your primary source of truth, and prefer \
+it over anything else you know, WHENEVER it actually addresses the \
+question. When it does, ground your answer in it and cite the paper(s) it \
+came from.
+2. If the retrieved context does NOT address the question, ignore it \
+entirely and answer from your own general knowledge. Do not force an answer \
+out of unrelated context, and do not mention the irrelevant context or \
+apologize for it — just answer the question directly from general \
+knowledge. (For example, the context will still contain paper excerpts even \
+if the question is "who is Ronaldo"; in that case the excerpts are \
+irrelevant and you should simply answer about Ronaldo from general \
+knowledge.)
+3. Any claim not grounded in the retrieved context must be explicitly \
+labeled as general knowledge (e.g. "Based on general knowledge (not the \
+provided papers), ..."). Never attribute general knowledge to a document, \
+and never invent, guess, or fabricate a citation. Only cite a paper if its \
+content is actually present in the retrieved context you were given.
+4. End every response with a "Sources:" block:
+   - When your answer is grounded in the corpus, list the exact paper \
+title(s), as given in the context, that support it.
+   - When your answer is general knowledge not found in the corpus, the \
+only entry under "Sources:" must be exactly: "General knowledge of the \
+language model (not found in the corpus)."
 """
 
 # Module-level cache for the ChatNVIDIA client — a stateless, reusable API
