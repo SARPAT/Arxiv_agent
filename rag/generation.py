@@ -22,6 +22,7 @@ distinguishable exception type. ``_is_retryable`` is what inspects that
 text to tell a transient failure from a permanent one.
 """
 
+import hashlib
 import logging
 import re
 import time
@@ -119,6 +120,35 @@ title(s), as given in the context, that support it.
 only entry under "Sources:" must be exactly: "General knowledge of the \
 language model (not found in the corpus)."
 """
+
+
+def response_cache_identifier() -> str:
+    """Short hash of the generation config that determines the answer text
+    produced from a given set of retrieved chunks: the system prompt above
+    and the generation model name.
+
+    Folded into ``app/cache.py``'s retrieval cache key (alongside, not
+    instead of, ``corpus_version`` and the embedder identifier) so that a
+    change to either of these auto-invalidates cache entries whose
+    downstream output would now differ, without a manual flush. This
+    exists because the retrieval cache key previously encoded only the
+    corpus/embedder/query - nothing about generation - so a system-prompt
+    or model change left prior entries reachable under an unchanged key
+    (the failure mode that masked the gate-removal change behind stale
+    entries until the cache was flushed by hand).
+
+    Note this is a deliberately conservative key: the retrieval cache
+    stores retrieved chunks, which don't themselves depend on the
+    generation config, so a prompt/model change re-retrieves identical
+    chunks under a new key (a one-time recompute, never a wrong result).
+    That cost is accepted to keep a single key that provably reflects
+    every input to what the pipeline ultimately returns - so this is
+    correct in advance of, not dependent on, response caching being added.
+    """
+    return hashlib.sha256(
+        f"{settings.generation_model}\n{SYSTEM_PROMPT}".encode("utf-8")
+    ).hexdigest()[:10]
+
 
 # Module-level cache for the ChatNVIDIA client — a stateless, reusable API
 # client, not per-user session state. See the equivalent note in
