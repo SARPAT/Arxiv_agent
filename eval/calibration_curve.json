@@ -1,18 +1,18 @@
 {
-  "roc_auc": 0.8640000000000001,
+  "roc_auc": 0.8742666666666666,
   "n_in_corpus": 150,
   "n_out_of_corpus": 50,
   "curve": [
     {
       "target_specificity": 0.7,
-      "threshold": 0.5007058382034302,
-      "sensitivity_overall": 0.78,
+      "threshold": 0.5035042762756348,
+      "sensitivity_overall": 0.8066666666666666,
       "specificity_overall": 0.7,
       "sensitivity_by_style": {
         "formal": 0.9795918367346939,
-        "casual": 0.5689655172413793,
+        "casual": 0.6206896551724138,
         "short": 0.8571428571428571,
-        "meta": 0.0
+        "meta": 1.0
       },
       "specificity_by_subtype": {
         "unrelated": 1.0,
@@ -21,29 +21,29 @@
     },
     {
       "target_specificity": 0.75,
-      "threshold": 0.4912766218185425,
-      "sensitivity_overall": 0.7666666666666667,
-      "specificity_overall": 0.76,
+      "threshold": 0.49188047647476196,
+      "sensitivity_overall": 0.78,
+      "specificity_overall": 0.78,
       "sensitivity_by_style": {
         "formal": 0.9795918367346939,
-        "casual": 0.5344827586206896,
+        "casual": 0.5517241379310345,
         "short": 0.8571428571428571,
-        "meta": 0.0
+        "meta": 1.0
       },
       "specificity_by_subtype": {
         "unrelated": 1.0,
-        "adjacent_uncovered": 0.6
+        "adjacent_uncovered": 0.6333333333333333
       }
     },
     {
       "target_specificity": 0.8,
-      "threshold": 0.4813797175884247,
-      "sensitivity_overall": 0.7466666666666667,
+      "threshold": 0.48158541321754456,
+      "sensitivity_overall": 0.7533333333333333,
       "specificity_overall": 0.8,
       "sensitivity_by_style": {
         "formal": 0.9795918367346939,
         "casual": 0.5172413793103449,
-        "short": 0.8095238095238095,
+        "short": 0.8333333333333334,
         "meta": 0.0
       },
       "specificity_by_subtype": {
@@ -53,13 +53,13 @@
     },
     {
       "target_specificity": 0.85,
-      "threshold": 0.4760091304779053,
-      "sensitivity_overall": 0.72,
+      "threshold": 0.4733225107192993,
+      "sensitivity_overall": 0.7266666666666667,
       "specificity_overall": 0.86,
       "sensitivity_by_style": {
         "formal": 0.9795918367346939,
-        "casual": 0.46551724137931033,
-        "short": 0.7857142857142857,
+        "casual": 0.5,
+        "short": 0.7619047619047619,
         "meta": 0.0
       },
       "specificity_by_subtype": {
@@ -69,18 +69,18 @@
     },
     {
       "target_specificity": 0.9,
-      "threshold": 0.47072499990463257,
-      "sensitivity_overall": 0.7066666666666667,
-      "specificity_overall": 0.9,
+      "threshold": 0.4399430453777313,
+      "sensitivity_overall": 0.6666666666666666,
+      "specificity_overall": 0.94,
       "sensitivity_by_style": {
         "formal": 0.9591836734693877,
-        "casual": 0.46551724137931033,
-        "short": 0.7619047619047619,
+        "casual": 0.41379310344827586,
+        "short": 0.6904761904761905,
         "meta": 0.0
       },
       "specificity_by_subtype": {
         "unrelated": 1.0,
-        "adjacent_uncovered": 0.8333333333333334
+        "adjacent_uncovered": 0.9
       }
     }
   ]
