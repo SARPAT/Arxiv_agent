@@ -38,17 +38,24 @@ class Settings(BaseSettings):
     generation_model: str = "nvidia/nemotron-3.5-lightning-30b-a3b"
     max_tokens: int = 512
 
-    # Chosen from eval/calibrate_threshold.py's tradeoff curve (Checkpoint
-    # 4g, expanded 200-question golden set) at the 70% specificity target
-    # - full table in eval/calibration_curve.json. Not the strictest
-    # available target: the "unrelated" out-of-corpus category is already
-    # saturated at 100% specificity even at the loosest tested target, so
-    # raising the target further only trades away real-question
-    # sensitivity - especially on casually-phrased questions, which cap
-    # around 55-57% sensitivity regardless of target - in exchange for
-    # marginal protection against the softer "adjacent_uncovered"
-    # out-of-corpus category.
-    similarity_threshold: float = 0.500706
+    # Recalibrated post-index-rebuild (PR #19: the torch-index/ONNX-embedder
+    # mismatch fix, plus the new meta plain_overview chunk), from
+    # eval/calibrate_threshold.py's tradeoff curve at the same 70%
+    # specificity target used since Checkpoint 4g - not re-derived from
+    # scratch, since the 4g rationale for that target (the "unrelated"
+    # out-of-corpus category already saturated at 100% specificity even at
+    # the loosest tested target, so a stricter target only trades away
+    # real-question sensitivity for marginal "adjacent_uncovered"
+    # protection) is about the shape of the tradeoff, not the specific
+    # embedder/index pairing, and hasn't been re-examined against the new
+    # curve. The previous value (0.500706) was calibrated against the
+    # mismatched pairing PR #19 fixes and should not be assumed comparable.
+    #
+    # NOTE: eval/calibration_curve.json and eval/calibration_result.json
+    # in this repo are still the pre-rebuild artifacts as of this commit -
+    # this value has not yet been reconciled against a committed curve
+    # file reflecting the same run it came from.
+    similarity_threshold: float = 0.5035042762756348
 
     retrieval_k: int = 4
     max_context_chars: int = 2500
