@@ -25,9 +25,10 @@ Metrics:
   field against each question's retrieved chunks.
 - ``false_accept_rate`` (overall, and split by ``unrelated``/
   ``adjacent_uncovered`` subtype): fraction of out-of-corpus questions
-  whose response "Sources:" block cited a real paper title. There is no
-  correct paper to cite for an out-of-corpus question, so any citation is
-  a false one - and with the gate gone, the system prompt's
+  whose answer text names a real paper title anywhere (the model no longer
+  writes a separate "Sources:" block, so the whole answer is scanned).
+  There is no correct paper to cite for an out-of-corpus question, so
+  naming one is a false one - and with the gate gone, the system prompt's
   general-knowledge labeling is the only thing standing between an
   out-of-corpus question and a false attribution, which is exactly what
   this metric now measures.
@@ -55,7 +56,6 @@ from eval.utils import save_json
 from rag.pipeline import (
     REAL_PAPER_TITLES,
     assemble_context,
-    extract_sources_block,
     retrieve_context,
     run_pipeline,
 )
@@ -95,14 +95,16 @@ def expected_paper_keys(entry: dict) -> list[str]:
     return [_PAPER_KEY_ALIASES.get(key, key) for key in entry["expected_papers"]]
 
 
-def check_false_attribution(sources_text: str, real_titles: list[str]) -> bool:
-    """True if `sources_text` cites any of the corpus's real paper titles.
+def check_false_attribution(answer_text: str, real_titles: list[str]) -> bool:
+    """True if `answer_text` names any of the corpus's real paper titles.
 
-    Used only on out-of-corpus questions, where *any* real title cited as
-    a source is by definition a false attribution — there is no genuinely
-    relevant paper for the model to have correctly cited.
+    Used only on out-of-corpus questions, where *any* real title named
+    anywhere in the answer is by definition a false attribution — there is
+    no genuinely relevant paper for the model to have correctly cited.
+    Scans the whole answer (the model no longer emits a separate "Sources:"
+    block to isolate).
     """
-    lowered = sources_text.lower()
+    lowered = answer_text.lower()
     return any(title.lower() in lowered for title in real_titles)
 
 
@@ -150,12 +152,17 @@ def evaluate_out_of_corpus(entry: dict) -> dict:
     """Full pipeline (including generation) for one out-of-corpus question,
     checked for false attribution. Every question generates now - there is
     no gate - so this is the metric that catches the system prompt failing
-    to label an out-of-corpus answer as general knowledge."""
+    to label an out-of-corpus answer as general knowledge.
+
+    The model no longer emits its own "Sources:" block (see
+    rag/generation.py), so false attribution is detected by scanning the
+    whole answer text for any real corpus paper title: for an out-of-corpus
+    question there is no paper that should be named, so naming one anywhere
+    is a false attribution."""
     result = run_pipeline(entry["question"])
 
     survived = top_chunk_survived(result.docs[0], result.context)
-    sources_text = extract_sources_block(result.answer)
-    false_accept = check_false_attribution(sources_text, REAL_PAPER_TITLES)
+    false_accept = check_false_attribution(result.answer, REAL_PAPER_TITLES)
 
     return {
         "id": entry["id"],
@@ -164,7 +171,6 @@ def evaluate_out_of_corpus(entry: dict) -> dict:
         "subtype": entry["subtype"],
         "top1_score": result.top1_score,
         "response": result.answer,
-        "sources_block": sources_text,
         "context_survived_top_chunk": survived,
         "false_accept": false_accept,
     }

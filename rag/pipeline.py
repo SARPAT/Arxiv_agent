@@ -19,7 +19,6 @@ recalibration, just no longer wired into the runtime.
 """
 
 import logging
-import re
 from collections.abc import Iterator
 from dataclasses import dataclass
 
@@ -28,7 +27,12 @@ from langchain_core.documents import Document
 
 from app.config import settings
 from ingestion.build_index import TARGET_PAPERS
-from rag.generation import GenerationError, generate, generate_stream
+from rag.generation import (
+    GENERAL_KNOWLEDGE_MARKER,
+    GenerationError,
+    generate,
+    generate_stream,
+)
 from rag.retrieval import retrieve
 
 logger = logging.getLogger(__name__)
@@ -112,34 +116,39 @@ def assemble_context(
     return docs2str(reordered, max_chars=max_chars)
 
 
-def extract_sources_block(response_text: str) -> str:
-    """Return the text of the response's "Sources:" block, or "" if absent.
+def retrieved_paper_titles(docs: list[Document]) -> list[str]:
+    """Canonical corpus paper titles for the retrieved chunks, deduped in
+    retrieval order.
 
-    Matches "Sources:" wherever it occurs in the text, with any amount or
-    kind of whitespace before or after it — there's no line-start anchor,
-    so a preceding newline is never required, which matters because
-    accumulated streamed text isn't guaranteed to have one. Markdown
-    emphasis directly wrapping the word ("**Sources:**", "*Sources:*") is
-    stripped first so it doesn't need special-casing separately.
+    This is the structured source list for a grounded answer - drawn from
+    the actual retrieved chunk metadata, not parsed from the model's
+    output (the model no longer writes its own "Sources:" line; see the
+    system prompt in ``rag/generation.py``). Each chunk's ``paper_key`` is
+    mapped to its title via ``TARGET_PAPERS``, which naturally excludes
+    synthetic non-paper chunks such as the doc-list chunk (``paper_key``
+    "meta", not a real paper).
     """
-    normalized = re.sub(
-        r"[*_]{1,2}(Sources:)[*_]{1,2}", r"\1", response_text, flags=re.IGNORECASE
-    )
-    match = re.search(r"Sources:\s*(.*)", normalized, re.IGNORECASE | re.DOTALL)
-    return match.group(1).strip() if match else ""
+    titles: list[str] = []
+    for doc in docs:
+        info = TARGET_PAPERS.get(doc.metadata.get("paper_key"))
+        if info and info["title"] not in titles:
+            titles.append(info["title"])
+    return titles
 
 
-def extract_cited_sources(response_text: str) -> list[str]:
-    """Return the real paper titles ``response_text``'s "Sources:" block
-    actually cites.
+def answered_from_general_knowledge(answer_text: str) -> bool:
+    """True if ``answer_text`` carries the general-knowledge provenance
+    marker the system prompt requires when (and only when) the answer is
+    not grounded in the corpus.
 
-    Matches by case-insensitive substring against the corpus's known
-    titles — the same check ``eval/run_eval.py`` uses to detect false
-    attribution, reused here to surface which titles were cited to API
-    callers (see ``app/api.py``'s ``done`` event).
+    This is the signal used to empty the structured sources for a
+    general-knowledge answer: retrieval always returns chunks (there is no
+    gate), so the retrieved metadata alone can't distinguish "answered
+    from these papers" from "answered from general knowledge despite these
+    papers being retrieved" - the model's own marker is what does.
     """
-    sources_text = extract_sources_block(response_text).lower()
-    return [title for title in REAL_PAPER_TITLES if title.lower() in sources_text]
+    needle = GENERAL_KNOWLEDGE_MARKER.rstrip(".").lower()
+    return needle in answer_text.lower()
 
 
 @dataclass
@@ -223,20 +232,26 @@ def run_pipeline_stream(
         return
 
     full_text = "".join(accumulated)
-    sources = extract_cited_sources(full_text)
-    if not sources:
-        # No corpus paper cited. This is expected and correct for a general-
-        # knowledge answer (its "Sources:" block carries the disclaimer line,
-        # not a paper title), so it's no longer treated as anomalous - but a
-        # corpus-grounded answer that failed to cite would also land here, so
-        # it's logged at INFO for visibility. `repr()` rather than the plain
-        # string, so any invisible or unusual characters in a live streamed
-        # response are visible instead of blending into normal whitespace.
-        logger.info(
-            "extract_cited_sources() found no corpus paper cited (expected for "
-            "a general-knowledge answer); raw text: %r",
-            full_text,
-        )
+    # A general-knowledge answer (model emitted the provenance marker) has
+    # no corpus sources - the retrieved chunks were irrelevant and ignored,
+    # so the structured list is empty and the frontend renders no "Sources:"
+    # block. A grounded answer's sources come from the retrieved chunk
+    # metadata, which is the single rendering (the model no longer writes
+    # its own "Sources:" line).
+    if answered_from_general_knowledge(full_text):
+        sources: list[str] = []
+    else:
+        sources = retrieved_paper_titles(docs)
+        if not sources:
+            # Grounded (no general-knowledge marker) yet no corpus paper
+            # among the retrieved chunks - unexpected; log for visibility.
+            # `repr()` so any invisible/unusual characters in the streamed
+            # response are visible instead of blending into whitespace.
+            logger.info(
+                "No general-knowledge marker and no corpus paper in the "
+                "retrieved chunks; raw text: %r",
+                full_text,
+            )
     yield {
         "type": "done",
         "sources": sources,
@@ -258,15 +273,36 @@ def answer_query(query: str, history: list[dict[str, str]] | None = None) -> str
 
 
 if __name__ == "__main__":
-    # Regression check for extract_cited_sources(): a "Sources:" marker
-    # with irregular spacing around it (two spaces, no preceding newline)
-    # rather than the model's usual newline-separated block format.
-    example_text = (
-        "The scaling factor prevents the dot products from growing too "
-        "large in magnitude, which would otherwise push softmax into "
-        "regions with extremely small gradients.  Sources: Attention Is "
-        "All You Need"
+    from langchain_core.documents import Document as _Doc
+
+    # retrieved_paper_titles(): maps retrieved chunks' paper_key to canonical
+    # titles, deduped in order, excluding synthetic non-paper chunks.
+    docs = [
+        _Doc(page_content="a", metadata={"paper_key": "attention"}),
+        _Doc(page_content="b", metadata={"paper_key": "attention"}),  # dup -> once
+        _Doc(page_content="c", metadata={"paper_key": "bert"}),
+        _Doc(page_content="d", metadata={"paper_key": "meta"}),  # doc-list, not a paper
+    ]
+    titles = retrieved_paper_titles(docs)
+    assert titles == [
+        TARGET_PAPERS["attention"]["title"],
+        TARGET_PAPERS["bert"]["title"],
+    ], titles
+    assert TARGET_PAPERS["attention"]["title"] in REAL_PAPER_TITLES
+    print("retrieved_paper_titles() dedupes in order and excludes non-paper chunks.")
+
+    # answered_from_general_knowledge(): detects the exact provenance marker
+    # the system prompt mandates, case-insensitively and tolerant of the
+    # trailing period, but does not fire on an unrelated grounded answer.
+    assert answered_from_general_knowledge(
+        "Ronaldo is a footballer. " + GENERAL_KNOWLEDGE_MARKER
     )
-    cited = extract_cited_sources(example_text)
-    assert cited == ["Attention Is All You Need"], cited
-    print("extract_cited_sources() regression test passed.")
+    assert answered_from_general_knowledge(
+        "prefix " + GENERAL_KNOWLEDGE_MARKER.upper().rstrip(".") + " suffix"
+    )
+    assert not answered_from_general_knowledge(
+        "The Transformer is introduced in Attention Is All You Need."
+    )
+    print("answered_from_general_knowledge() matches the marker, ignores grounded text.")
+
+    print("\nALL rag/pipeline.py SELF-TESTS PASSED")
