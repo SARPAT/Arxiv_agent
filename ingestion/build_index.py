@@ -3,8 +3,17 @@
 Fetches each paper via ArxivLoader, strips its references section, chunks
 the remaining text, adds synthetic doc-list and per-paper metadata chunks,
 embeds everything with ``rag.embedder.get_embedder()``, and persists the
-FAISS index to data/docstore_index/. The corpus is static, so this is
-meant to be run once, not on every app boot.
+FAISS index to data/docstore_index/. The corpus is static day-to-day, but
+this script does get re-run whenever the corpus or embedder changes (a
+content-gap fix, a recalibration, a runtime swap) - not on every app boot.
+
+As the last step of a successful run, bumps Redis's corpus:version (see
+app/cache.py's increment_corpus_version()), so a freshly rebuilt index
+can never be silently served stale cached retrieval results under the
+old version number - a structural fix for that exact bug happening twice
+when the bump was a manual, easily-forgotten step. This means running
+this script now requires a reachable REDIS_URL, which it previously
+didn't.
 """
 
 import re
@@ -15,6 +24,7 @@ from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
+from app.cache import increment_corpus_version
 from rag.embedder import get_embedder
 
 # Shared with rag/retrieval.py (Checkpoint 4f) rather than each owning its
@@ -279,6 +289,19 @@ def main():
         print(f"  {paper_key}: {per_paper_counts[paper_key]}")
     print(f"  meta (doc-list): {per_paper_counts['meta']}")
     print(f"Index persisted to {INDEX_PATH}/")
+
+    # Last step, only reached once the index above is fully saved to disk -
+    # see the module docstring and increment_corpus_version()'s own
+    # docstring for why this deliberately does not catch a Redis error:
+    # this run's index is safely on disk either way, but a failed bump
+    # must be loud, not swallowed, since silently swallowing it is the
+    # exact bug this call exists to close.
+    new_version = increment_corpus_version()
+    print(
+        f"Bumped corpus:version to {new_version} in Redis - cached "
+        "retrieval results computed under any previous version are now "
+        "unreachable, without needing a manual cache flush."
+    )
 
 
 if __name__ == "__main__":
