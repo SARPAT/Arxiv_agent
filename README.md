@@ -39,50 +39,7 @@ flowchart LR
 
 [![Arxiv Agent architecture — request-time flow from the Gradio frontend through the FastAPI backend, Redis cache, Qdrant Cloud vector search and NVIDIA NIM generation](docs/architecture.png)](docs/architecture.png)
 
-<sub>Click the diagram to open it full size.</sub>
-
-<details>
-<summary>Mermaid source for the diagram above</summary>
-
-```mermaid
-flowchart TB
- subgraph Backend["Render backend · FastAPI · arxiv-agent-api"]
-    direction TB
-        Chat["Chat endpoint"]
-        Cache["1 · Check retrieval cache"]
-        Hit{"Cache hit?"}
-        Embed["2 · Embed query<br>ONNX · bge-small-en-v1.5 · 384-dim"]
-        Search["3 · Vector search<br>top-k ranked chunks"]
-        Context["4 · Build context<br>character-budget truncation"]
-        Generate["5 · Generate answer<br>provenance rules"]
-        Stream["6 · Stream SSE token deltas<br>done: sources + session_id"]
-        History["7 · Store session history<br>multi-turn context"]
-  end
-    User(["User"]) -->|Types a question| Frontend["HF Space · Gradio frontend<br>sarapatel/Research-Agent"]
-    Frontend -->|"HTTP POST /chat · BACKEND_URL"| Chat
-    Chat --> Cache
-    Cache --> Hit
-    Hit -->|Yes| Context
-    Hit -->|No| Embed
-    Embed --> Search
-    Search -->|Cache result| Redis
-    Search --> Context
-    Context --> Generate
-    Generate --> Stream
-    Stream --> History
-    Stream -->|Streamed answer + sources| Frontend
-    Frontend -->|Renders response| User
-    Cache <--> Redis[("Upstash Redis<br>retrieval cache + session store")]
-    History <--> Redis
-    Search <--> Qdrant[("Qdrant Cloud<br>arxiv_agent · dense vector · 384 · cosine<br>tenant_id = public")]
-    Generate <--> NIM["NVIDIA NIM<br>nemotron-3.5-lightning-30b-a3b"]
-    Embed -.-> Hub["Hugging Face Hub<br>model + tokenizer download"]
-    Frontend -. Planned · document upload .-> Upload["Upload endpoint<br>chunk + embed user document<br>tenant_id = session_id"]
-    Upload -. Same collection .-> Qdrant
-    Dashboard["Observability dashboard<br>latency · retrieval scores · cache hits<br>generation errors · session activity"] -. Planned · observes .-> Chat
-```
-
-</details>
+<sub>Click the diagram to open it full size · source: [`docs/architecture.mmd`](docs/architecture.mmd)</sub>
 
 ---
 
