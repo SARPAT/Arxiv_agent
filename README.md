@@ -39,6 +39,12 @@ flowchart LR
 <summary><b>Click to expand the full request-time diagram</b> — every hop, cache layer and external service</summary>
 
 <br>
+<a href="docs/architecture.png">
+  <img src="docs/architecture.png" alt="Arxiv Agent architecture — request-time flow from the Gradio frontend through the FastAPI backend, Redis cache, Qdrant Cloud vector search and NVIDIA NIM generation" width="100%">
+</a>
+
+<sub><i>Click the image for the full-resolution version.</i></sub>
+
 
 ```mermaid
 flowchart TB
