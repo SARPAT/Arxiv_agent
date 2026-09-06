@@ -12,7 +12,7 @@ rebuild + redeploy, before assuming the cache layer is healthy.
 
 import re
 
-from app.cache import _client
+from app.cache import RETRIEVAL_BACKEND, _client
 from rag.embedder import cache_identifier
 
 SAMPLE_SIZE = 10
@@ -42,17 +42,35 @@ def main():
             continue
 
         for key in keys:
-            # key shape: "<prefix>:<identifier>:[<corpus_version>:]<query_hash>"
+            # Key shapes:
+            #   embedding:<identifier>:<query_hash>
+            #   retrieval:<backend>:<identifier>:<prompt_hash>:<version>:<hash>
+            # Checkpoint 6 prepended a retrieval-backend segment ("qdrant"),
+            # so the identifier sits one segment further along for retrieval
+            # keys - without this the identifier would be misread as
+            # "qdrant:<repo>" and every live key would be reported stale.
             body = key[len(prefix) + 1 :]
-            identifier_part = ":".join(body.split(":")[:2])  # "<repo>:<hash>"
+            segments = body.split(":")
+            backend = None
+            if prefix == "retrieval":
+                backend = segments[0]
+                segments = segments[1:]
+            identifier_part = ":".join(segments[:2])  # "<repo>:<hash>"
             matches_shape = bool(_EXPECTED_IDENTIFIER_RE.match(identifier_part))
             matches_current = identifier_part == current_identifier
             print(f"  {key}")
             print(
-                f"    identifier={identifier_part!r} "
+                f"    {'backend=' + repr(backend) + ' ' if backend else ''}"
+                f"identifier={identifier_part!r} "
                 f"matches_cache_identifier_shape={matches_shape} "
                 f"matches_current_identifier={matches_current}"
             )
+            if backend is not None and backend != RETRIEVAL_BACKEND:
+                print(
+                    f"    WARNING: retrieval key written by backend {backend!r}, "
+                    f"not the current {RETRIEVAL_BACKEND!r} - a pre-Checkpoint-6 "
+                    "entry holding lower-is-better L2 scores."
+                )
             if not matches_shape:
                 print(
                     "    WARNING: doesn't look like cache_identifier()'s "

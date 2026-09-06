@@ -11,5 +11,15 @@ services:
         sync: false
       - key: REDIS_URL
         sync: false
+      # Qdrant Cloud replaced the local FAISS index in Checkpoint 6. The URL
+      # and API key are secrets (sync: false, set in the Render dashboard),
+      # matching NVIDIA_API_KEY/REDIS_URL. The collection name is not a
+      # secret, so it ships with its default value here.
+      - key: QDRANT_URL
+        sync: false
+      - key: QDRANT_API_KEY
+        sync: false
+      - key: QDRANT_COLLECTION
+        value: arxiv_agent
       - key: CORS_ALLOWED_ORIGIN
         sync: false

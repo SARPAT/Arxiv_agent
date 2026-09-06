@@ -48,6 +48,19 @@ class Settings(BaseSettings):
     # eventual hybrid-search recalibration but no longer feeds any runtime
     # setting.
 
+    # Qdrant Cloud replaced the local FAISS index in Checkpoint 6. No
+    # defaults for the URL or API key: an unset QDRANT_URL/QDRANT_API_KEY
+    # should fail loudly at startup rather than the service booting with
+    # nowhere to retrieve from, the same reasoning as redis_url above.
+    # Every consumer (rag/vectorstore.py is the only module that builds a
+    # QdrantClient, plus ingestion through it) reads these from here -
+    # nothing hardcodes a connection value, because config drift between
+    # this file and a module's own copy already caused a real bug once
+    # (Checkpoint 4e's hardcoded embedding-model constant in ingestion).
+    qdrant_url: str
+    qdrant_api_key: str
+    qdrant_collection: str = "arxiv_agent"
+
     retrieval_k: int = 4
     max_context_chars: int = 2500
 

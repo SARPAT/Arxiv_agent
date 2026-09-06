@@ -11,11 +11,18 @@ It stays because the same separability measurement is what the eventual
 hybrid-search work will use to decide whether a gate becomes viable
 again - at which point this is the tool to re-run.
 
-Retrieves the top-1 chunk for every golden-set question, pairs its raw
-FAISS L2 distance with the question's true label (1 = in-corpus, 0 =
+Retrieves the top-1 chunk for every golden-set question, pairs its
+similarity score with the question's true label (1 = in-corpus, 0 =
 out-of-corpus), and reports sensitivity and specificity at each of
 several candidate specificity targets rather than picking one target and
 one threshold automatically.
+
+Checkpoint 6 flipped the score direction: the backend is now Qdrant with
+cosine similarity, where **higher is better**, replacing the L2 distance
+where lower was better. Every comparison here was inverted accordingly
+(``>=`` to proceed, ``<`` to abstain, and the strictest tie-break is now
+the highest threshold rather than the lowest). Any curve produced before
+Checkpoint 6 is therefore not comparable to one produced after it.
 
 Checkpoint 4g reworked this from a single fixed-specificity-target
 selection (originally >=0.90) to a full tradeoff curve, for two reasons
@@ -44,8 +51,8 @@ This computes ROC/AUC manually rather than depending on scikit-learn,
 which is reasonable at this sample size (200 points) and avoids adding a
 new dependency for one calibration script.
 
-Requires network access (the embedding model and the persisted FAISS
-index) — this cannot run in an environment with no route to Hugging Face.
+Requires network access (the embedding model and the Qdrant collection) —
+this cannot run in an environment with no route to Hugging Face or Qdrant.
 Run this externally and review the printed curve and
 eval/calibration_curve.json. Its output no longer flows into the runtime
 (there is no gate to feed); it is analysis for the hybrid-search work.
@@ -92,9 +99,11 @@ def roc_points(
     """``(threshold, fpr, tpr)`` triples across every candidate threshold.
 
     Decision rule modeled here: predict in-corpus (proceed) when
-    ``score <= threshold`` on the raw L2 distance directly - the rule the
-    removed confidence gate applied, kept here so this separability
-    analysis still reflects what a distance threshold would have done.
+    ``score >= threshold``. Checkpoint 6 flipped this comparison with the
+    backend: Qdrant returns cosine similarity where **higher is better**,
+    where the FAISS L2 distance it replaced was lower-is-better. The
+    sweep itself is unchanged - the lowest candidate accepts everything
+    and the highest accepts nothing, as an ROC sweep requires.
     """
     n_pos = sum(labels)
     n_neg = len(labels) - n_pos
@@ -103,8 +112,8 @@ def roc_points(
 
     points = []
     for t in candidates:
-        tp = sum(1 for label, s in zip(labels, scores) if label == 1 and s <= t)
-        fp = sum(1 for label, s in zip(labels, scores) if label == 0 and s <= t)
+        tp = sum(1 for label, s in zip(labels, scores) if label == 1 and s >= t)
+        fp = sum(1 for label, s in zip(labels, scores) if label == 0 and s >= t)
         tpr = tp / n_pos if n_pos else 0.0
         fpr = fp / n_neg if n_neg else 0.0
         points.append((t, fpr, tpr))
@@ -128,9 +137,11 @@ def select_threshold(
     (``tpr``) among thresholds meeting the specificity floor
     (``1 - fpr >= min_specificity``).
 
-    Ties in sensitivity are broken by the strictest (lowest) qualifying
-    threshold, since a stricter threshold costs nothing in sensitivity
-    while adding specificity margin.
+    Ties in sensitivity are broken by the strictest qualifying threshold,
+    since a stricter threshold costs nothing in sensitivity while adding
+    specificity margin. With cosine similarity (higher is better) the
+    strictest threshold is the **highest** one - the opposite of the L2
+    era, where it was the lowest.
     """
     eligible = [
         (t, fpr, tpr) for t, fpr, tpr in points if (1 - fpr) >= min_specificity
@@ -142,18 +153,19 @@ def select_threshold(
         )
     best_tpr = max(tpr for _, _, tpr in eligible)
     best = [pt for pt in eligible if pt[2] == best_tpr]
-    return min(best, key=lambda pt: pt[0])
+    return max(best, key=lambda pt: pt[0])
 
 
 def sensitivity_by_style(records: list[dict], threshold: float) -> dict[str, float | None]:
     """Sensitivity (fraction correctly proceeded on) at ``threshold``,
     split by in-corpus ``style``. ``None`` for a style with zero examples
-    rather than a misleading 0.0."""
+    rather than a misleading 0.0. Proceeding means ``score >= threshold``
+    (cosine, higher is better)."""
     result = {}
     for style in IN_CORPUS_STYLES:
         subset = [r for r in records if r["label"] == 1 and r["style"] == style]
         result[style] = (
-            sum(1 for r in subset if r["score"] <= threshold) / len(subset)
+            sum(1 for r in subset if r["score"] >= threshold) / len(subset)
             if subset
             else None
         )
@@ -163,12 +175,13 @@ def sensitivity_by_style(records: list[dict], threshold: float) -> dict[str, flo
 def specificity_by_subtype(records: list[dict], threshold: float) -> dict[str, float | None]:
     """Specificity (fraction correctly abstained on) at ``threshold``,
     split by out-of-corpus ``subtype``. ``None`` for a subtype with zero
-    examples rather than a misleading 0.0."""
+    examples rather than a misleading 0.0. Abstaining means
+    ``score < threshold`` (cosine, higher is better)."""
     result = {}
     for subtype in OUT_OF_CORPUS_SUBTYPES:
         subset = [r for r in records if r["label"] == 0 and r["subtype"] == subtype]
         result[subtype] = (
-            sum(1 for r in subset if r["score"] > threshold) / len(subset)
+            sum(1 for r in subset if r["score"] < threshold) / len(subset)
             if subset
             else None
         )

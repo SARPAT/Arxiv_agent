@@ -5,7 +5,7 @@ invalidate cached retrieval results whenever the corpus changes), a
 query-embedding cache, and a full-retrieval-results cache. All of it is
 strictly optional from the request-serving pipeline's correctness
 standpoint — a cache miss or any Redis error falls back to live
-computation (embedding via the model, or a fresh FAISS search) rather
+computation (embedding via the model, or a fresh vector search) rather
 than raising, so a cache outage only removes the speed benefit for that
 one call, never changes the answer or fails the request. The one
 exception is ``increment_corpus_version()``, called by
@@ -76,6 +76,16 @@ EMBEDDING_TTL_SECONDS = 86400
 RETRIEVAL_TTL_SECONDS = 86400
 
 CORPUS_VERSION_KEY = "corpus:version"
+
+# Retrieval backend identifier, folded into the retrieval cache key.
+# Checkpoint 6 swapped FAISS (L2 distance, lower-is-better) for Qdrant
+# (cosine, higher-is-better). A cached entry written by the FAISS era
+# holds L2 scores; serving one afterwards would hand higher-is-better
+# logic a lower-is-better number - silent, plausible-looking and wrong.
+# The corpus_version bump on ingest already covers this in practice, but
+# naming the backend in the key makes it structural rather than
+# incidental, the same protective pattern as the embedder identifier.
+RETRIEVAL_BACKEND = "qdrant"
 
 # Same construction pattern as app/session.py: one client, built once at
 # import time, relying on redis-py's own connection pooling rather than
@@ -187,8 +197,8 @@ def get_cached_retrieval(query: str, corpus_version: int) -> dict | None:
     embedder identifier, so a prompt/model change invalidates prior
     entries without a manual flush - see ``rag/generation.py``."""
     key = (
-        f"retrieval:{cache_identifier()}:{response_cache_identifier()}:"
-        f"{corpus_version}:{_query_hash(query)}"
+        f"retrieval:{RETRIEVAL_BACKEND}:{cache_identifier()}:"
+        f"{response_cache_identifier()}:{corpus_version}:{_query_hash(query)}"
     )
     try:
         raw = _client.get(key)
@@ -210,8 +220,8 @@ def set_cached_retrieval(
     including ``response_cache_identifier()`` - so a write and its read
     land on the same key only while the generation config is unchanged."""
     key = (
-        f"retrieval:{cache_identifier()}:{response_cache_identifier()}:"
-        f"{corpus_version}:{_query_hash(query)}"
+        f"retrieval:{RETRIEVAL_BACKEND}:{cache_identifier()}:"
+        f"{response_cache_identifier()}:{corpus_version}:{_query_hash(query)}"
     )
     value = json_dumps_safe({"chunks": chunks, "scores": scores})
     try:
@@ -224,11 +234,11 @@ if __name__ == "__main__":
     import fakeredis
     import numpy as np
 
-    # A real embedder/FAISS index returns numpy.float32 values, not plain
-    # Python floats - json.dumps chokes on those without json_dumps_safe's
+    # A real embedder returns numpy.float32 values, not plain Python
+    # floats - json.dumps chokes on those without json_dumps_safe's
     # default=float. Exercise both writers with actual numpy.float32
     # values (not floats that merely look like them) so this class of bug
-    # is caught here instead of only against live FAISS output.
+    # is caught here instead of only against live output.
     _client = fakeredis.FakeRedis(decode_responses=True)
 
     set_cached_embedding("test query", [np.float32(0.1), np.float32(0.2)])

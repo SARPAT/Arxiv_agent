@@ -33,8 +33,18 @@ Metrics:
   out-of-corpus question and a false attribution, which is exactly what
   this metric now measures.
 - ``context_survival_rate``: fraction of all questions where the single
-  closest retrieved chunk's content actually appears in the context
+  best-matching retrieved chunk's content actually appears in the context
   string ``assemble_context()`` produced.
+
+Score direction: Checkpoint 6 swapped FAISS (L2 distance, lower is
+better) for Qdrant (cosine similarity, higher is better). Recall@k, MRR
+and context survival all depend on the *rank order* of results, not on
+score values, and retrieval returns results best-first under both
+backends - so these metrics are unaffected and this file contains no
+score comparison or score-based sort to invert. The only score this
+script records is the reported ``top1_score`` per question, whose
+direction (and so whose comparability with pre-Checkpoint-6 result
+files) has flipped.
 
 Writes ``eval/results_<output-suffix>.json`` (full per-question detail)
 and ``eval/summary_<output-suffix>.json`` (headline numbers), where

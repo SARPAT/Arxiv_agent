@@ -17,8 +17,14 @@ huggingface-hub==1.29.0
 arxiv==2.4.1
 numpy==2.4.6
 pymupdf==1.28.2
+# Checkpoint 6: FAISS (local, in-process, committed index binary) replaced
+# by Qdrant Cloud. faiss-cpu is gone with it - nothing imports faiss any
+# more. langchain-community stays: it is no longer used for vector storage,
+# but ingestion still uses its ArxivLoader and rag/pipeline.py still uses
+# LongContextReorder, so the dependency remains (noted as tech debt rather
+# than removed).
 langchain-community==0.4.2
-faiss-cpu==1.15.0
+qdrant-client==1.16.1
 langchain-nvidia-ai-endpoints==1.4.3
 python-dotenv==1.2.3
 fastapi==0.141.1
