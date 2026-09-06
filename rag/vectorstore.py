@@ -16,6 +16,12 @@ Layout, all locked decisions:
   all ``"public"``; Checkpoint 7's user uploads will use the session id,
   which is why ``search()`` takes a *list* of tenant ids and not one
   string - it can then query ``["public", session_id]`` in one call.
+- **Every filtered payload field must be indexed.** Qdrant Cloud's free
+  tier runs in strict mode, which rejects a filter on an unindexed field
+  with a 400 instead of falling back to a scan. So ``tenant_id`` plus
+  everything in ``FILTERABLE_PAYLOAD_FIELDS`` gets an index at
+  ``ensure_collection()`` time, and ``count_points()`` refuses a filter on
+  anything outside that set.
 - **Named vector ``"dense"``**, not an unnamed default. A collection's
   vector configuration is immutable after creation, so creating it
   unnamed would mean deleting the collection and re-ingesting just to add
@@ -32,6 +38,7 @@ import hashlib
 import uuid
 
 from qdrant_client import QdrantClient, models
+from qdrant_client.http.exceptions import UnexpectedResponse
 
 from app.config import settings
 from rag.embedder import get_embedder
@@ -40,6 +47,25 @@ from rag.embedder import get_embedder
 # Qdrant Cloud's payload limits, large enough that a ~334-chunk corpus is
 # a handful of round trips rather than hundreds.
 UPSERT_BATCH_SIZE = 100
+
+# The tenant field gets its own index type (``is_tenant=True``), so it is
+# named separately from the plain keyword-indexed fields below.
+TENANT_FIELD = "tenant_id"
+
+# Payload fields that anything filters on, beyond the tenant. Qdrant Cloud
+# free-tier clusters run in strict mode, which **rejects a filter on any
+# unindexed payload field** with a 400 rather than falling back to a scan -
+# so every field used in a filter must be indexed here. Found the hard way:
+# the ingestion summary filters by chunk_type and paper_key via
+# count_points(), and on a fresh cluster it failed with
+#   400: Index required but not found for "chunk_type" ... [keyword]
+# after the upsert itself had already succeeded.
+FILTERABLE_PAYLOAD_FIELDS = ("chunk_type", "paper_key")
+
+# Every payload field it is legal to filter on. count_points() checks
+# against this so a filter on an unindexed field fails immediately, with a
+# clear message, instead of as a 400 from the server mid-run.
+INDEXED_PAYLOAD_FIELDS = (TENANT_FIELD, *FILTERABLE_PAYLOAD_FIELDS)
 
 # Fixed namespace for deterministic point ids. Any stable UUID works; it
 # only has to never change, or every re-ingest would write new points
@@ -78,6 +104,31 @@ def embedding_dimension() -> int:
     return _embedding_dim
 
 
+def _create_payload_index(client: QdrantClient, field: str, schema) -> None:
+    """Create one payload index, tolerating it already existing.
+
+    ``ensure_collection()`` runs on every ingestion and these indexes now
+    exist on the live cluster, so "already there" is the normal case, not
+    an error. Only an already-exists conflict is swallowed: any other
+    ``UnexpectedResponse`` (auth, quota, a bad schema, an unreachable
+    cluster) is re-raised, because silently continuing past those is how a
+    collection ends up subtly misconfigured and only fails much later, at
+    query time.
+    """
+    try:
+        client.create_payload_index(
+            collection_name=settings.qdrant_collection,
+            field_name=field,
+            field_schema=schema,
+        )
+    except UnexpectedResponse as exc:
+        already_exists = exc.status_code == 409 or (
+            b"already exists" in (exc.content or b"").lower()
+        )
+        if not already_exists:
+            raise
+
+
 def ensure_collection() -> None:
     """Create the collection and its tenant payload index if absent.
 
@@ -98,18 +149,26 @@ def ensure_collection() -> None:
             },
         )
 
-    # Setting a payload index is itself idempotent in Qdrant, so this runs
-    # unconditionally rather than only on the create path - that way a
-    # collection somehow created without the index (or created by hand)
-    # still ends up with tenant co-location rather than silently missing it.
-    client.create_payload_index(
-        collection_name=settings.qdrant_collection,
-        field_name="tenant_id",
-        field_schema=models.KeywordIndexParams(
+    # Payload indexes run unconditionally rather than only on the create
+    # path, so a collection created without them (or created by hand)
+    # still converges to the right shape instead of silently missing one.
+    # Which fields are indexed is not cosmetic: strict mode rejects a
+    # filter on an unindexed field outright - see FILTERABLE_PAYLOAD_FIELDS.
+    #
+    # tenant_id keeps its own schema (KeywordIndexParams with
+    # is_tenant=True) rather than a plain keyword index - that flag is what
+    # makes Qdrant co-locate a tenant's vectors on disk, and it would be
+    # lost by downgrading it to PayloadSchemaType.KEYWORD.
+    _create_payload_index(
+        client,
+        TENANT_FIELD,
+        models.KeywordIndexParams(
             type=models.KeywordIndexType.KEYWORD,
             is_tenant=True,
         ),
     )
+    for field in FILTERABLE_PAYLOAD_FIELDS:
+        _create_payload_index(client, field, models.PayloadSchemaType.KEYWORD)
 
 
 def point_id(tenant_id: str, metadata: dict, text: str) -> str:
@@ -213,7 +272,19 @@ def count_points(
 ) -> int:
     """Exact point count, optionally narrowed to tenants and/or one
     payload field value. Used for the ingestion verification summary and
-    ``scripts/verify_qdrant.py``'s breakdowns."""
+    ``scripts/verify_qdrant.py``'s breakdowns.
+
+    ``field`` must be one of ``INDEXED_PAYLOAD_FIELDS``: strict mode
+    rejects a filter on an unindexed field with a 400, so this fails fast
+    and locally rather than part-way through a run against the cluster.
+    """
+    if field is not None and field not in INDEXED_PAYLOAD_FIELDS:
+        raise ValueError(
+            f"cannot filter on unindexed payload field {field!r}; "
+            f"indexed fields are {list(INDEXED_PAYLOAD_FIELDS)}. Add it to "
+            "FILTERABLE_PAYLOAD_FIELDS so ensure_collection() indexes it."
+        )
+
     conditions = []
     if tenant_ids:
         conditions.append(
