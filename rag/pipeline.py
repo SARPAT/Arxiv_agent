@@ -167,7 +167,8 @@ def retrieve_context(query: str) -> tuple[list[Document], float]:
 
     Returns ``(docs, top1_score)``. Every query proceeds to generation —
     there is no gate — so this no longer makes an abstain/proceed decision;
-    it just retrieves. ``top1_score`` (the closest chunk's raw L2 distance)
+    it just retrieves. ``top1_score`` (the best chunk's cosine similarity,
+    higher is better since Checkpoint 6's Qdrant swap)
     is still returned as telemetry, not as a gate input: it's reported in
     the ``done`` event and by the eval harness, but nothing branches on it.
     """

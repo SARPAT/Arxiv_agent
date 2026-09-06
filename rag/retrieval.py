@@ -1,19 +1,26 @@
-"""Similarity search over the FAISS index built in Checkpoint 1.
+"""Similarity search over the Qdrant Cloud collection.
 
-Loads the persisted index from ``data/docstore_index/`` using the same
-embedder (``rag.embedder.get_embedder()``) it was built with — FAISS
-indexes are just vectors plus metadata, so querying with a different
-embedder (or even the same model through a different runtime - see
-Checkpoint 4f) would silently produce meaningless nearest-neighbor
-results.
+Checkpoint 6 replaced the local FAISS index with Qdrant (see
+``rag/vectorstore.py``). There is no index to load: the process holds no
+corpus in memory, and there is no startup load step - the first query
+just issues a network call. Queries are embedded with the same embedder
+the corpus was ingested with (``rag.embedder.get_embedder()``); querying
+with a different embedder, or the same model through a different runtime,
+would silently produce meaningless nearest neighbours.
+
+**Score direction changed with the backend.** FAISS returned a raw L2
+distance where *lower* was a better match; Qdrant returns cosine
+similarity where *higher* is better. Because the embedder L2-normalizes
+its output the two rank identically, so nothing about ordering changed -
+but any comparison against a score value had to be inverted, and Qdrant
+already returns results best-first, so this module must not re-sort them.
 
 Retrieval is cached in two layers (``app/cache.py``): a full-retrieval
-cache keyed on the query and the current corpus version, and — on a
-retrieval-cache miss — a query-embedding cache underneath it. Both are
-optional from a correctness standpoint; see ``retrieve()``.
+cache keyed on the query, the corpus version and the retrieval backend,
+and — on a retrieval-cache miss — a query-embedding cache underneath it.
+Both are optional from a correctness standpoint; see ``retrieve()``.
 """
 
-from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 
 from app.cache import (
@@ -24,37 +31,13 @@ from app.cache import (
     set_cached_retrieval,
 )
 from rag.embedder import get_embedder
+from rag.vectorstore import search
 
-INDEX_PATH = "data/docstore_index"
-
-# Module-level cache for the loaded index and embedder. This is *not*
-# per-user session state (loading a ~300-chunk FAISS index and a
-# sentence-transformers model from disk on every call would be needlessly
-# slow) — it's a shared, stateless resource, no different from caching a
-# database connection pool. Conversation history is a separate concern and
-# is deliberately never stored here; see pipeline.py.
-_vectorstore: FAISS | None = None
-
-
-def _get_vectorstore() -> FAISS:
-    """Load and cache the persisted FAISS index.
-
-    ``allow_dangerous_deserialization=True`` is required because langchain's
-    FAISS wrapper persists its docstore with pickle. This is safe here only
-    because ``data/docstore_index/`` is a file we built and committed
-    ourselves in Checkpoint 1, not an index accepted from an untrusted
-    source.
-    """
-    global _vectorstore
-    if _vectorstore is None:
-        _vectorstore = FAISS.load_local(
-            INDEX_PATH, get_embedder(), allow_dangerous_deserialization=True
-        )
-    return _vectorstore
-
-
-def _doc_to_dict(doc: Document) -> dict:
-    return {"page_content": doc.page_content, "metadata": doc.metadata}
+# The tenant whose chunks make up the shared arXiv corpus. Checkpoint 7
+# will extend this to ``["public", session_id]`` so a user's own uploads
+# are searched alongside it; for now every caller searches only the
+# shared corpus.
+PUBLIC_TENANT_IDS = ["public"]
 
 
 def _dict_to_doc(data: dict) -> Document:
@@ -62,31 +45,33 @@ def _dict_to_doc(data: dict) -> Document:
 
 
 def retrieve(query: str, k: int = 4) -> list[tuple[Document, float]]:
-    """Return the ``k`` chunks most similar to ``query``.
+    """Return the ``k`` chunks most similar to ``query``, best first.
 
-    Each result is a ``(document, score)`` pair, where ``score`` is the raw
-    FAISS L2 distance between the query embedding and the chunk embedding —
-    **lower means more similar**, not a normalized 0-1 similarity score.
+    Each result is a ``(document, score)`` pair, where ``score`` is the
+    cosine similarity between the query embedding and the chunk embedding
+    — **higher means more similar**, roughly on a 0-1 scale. (Before
+    Checkpoint 6 this was a raw FAISS L2 distance, where lower was
+    better.) Results arrive from Qdrant already ordered best-first and are
+    returned in that order untouched.
 
     This function applies no relevance or confidence filtering: it always
-    returns exactly ``k`` documents, however distant they are from the
-    query. For an out-of-corpus question there may be no chunk that is
-    genuinely relevant, but this function has no way to signal that and
-    will still return its ``k`` nearest neighbors.
+    returns up to ``k`` documents, however weak the match. For an
+    out-of-corpus question there may be no chunk that is genuinely
+    relevant, but this function has no way to signal that and will still
+    return its ``k`` nearest neighbours.
 
     Checks the retrieval cache first, keyed on the current corpus version
-    so a future re-ingestion invalidates it automatically. A cached entry
-    is only used if it holds at least ``k`` results — different callers in
-    this codebase ask for different ``k`` (the live pipeline always uses
+    so a re-ingestion invalidates it automatically. A cached entry is only
+    used if it holds at least ``k`` results — different callers in this
+    codebase ask for different ``k`` (the live pipeline always uses
     ``settings.retrieval_k``, the eval scripts use larger values for
     Recall@8) and the cache key doesn't encode ``k``, so an entry with
     fewer results than requested is treated as a miss and overwritten with
     a freshly computed, larger one rather than silently under-returning.
     On a retrieval-cache miss, checks the embedding cache before falling
     back to embedding the query live; either way the result is written
-    back to the retrieval cache. Neither cache is consulted for anything
-    beyond the query and corpus version — a cache or Redis outage falls
-    back to this function's exact previous (uncached) behavior.
+    back to the retrieval cache. A cache or Redis outage falls back to
+    this function's exact uncached behaviour.
     """
     corpus_version = get_corpus_version()
 
@@ -96,20 +81,18 @@ def retrieve(query: str, k: int = 4) -> list[tuple[Document, float]]:
         scores = cached["scores"][:k]
         return list(zip(docs, scores))
 
-    vectorstore = _get_vectorstore()
-
     vector = get_cached_embedding(query)
     if vector is None:
-        vector = vectorstore.embeddings.embed_query(query)
+        vector = get_embedder().embed_query(query)
         set_cached_embedding(query, vector)
 
-    results = vectorstore.similarity_search_with_score_by_vector(vector, k=k)
+    results = search(vector, k=k, tenant_ids=PUBLIC_TENANT_IDS)
 
     set_cached_retrieval(
         query,
         corpus_version,
-        chunks=[_doc_to_dict(doc) for doc, _score in results],
-        scores=[score for _doc, score in results],
+        chunks=[chunk for chunk, _score in results],
+        scores=[score for _chunk, score in results],
     )
 
-    return results
+    return [(_dict_to_doc(chunk), score) for chunk, score in results]

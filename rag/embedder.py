@@ -93,14 +93,13 @@ def cache_identifier() -> str:
 
 class OnnxBgeEmbeddings(Embeddings):
     """``langchain_core.embeddings.Embeddings`` implementation backed by
-    an ONNX Runtime session, so it plugs into ``FAISS.from_documents``/
-    ``FAISS.load_local`` exactly like the ``HuggingFaceEmbeddings`` it
-    replaces — nothing downstream needs to know which one produced a
-    given index.
+    an ONNX Runtime session, exposing the same ``embed_documents``/
+    ``embed_query`` surface as the ``HuggingFaceEmbeddings`` it replaces —
+    nothing downstream needs to know which one produced a given vector.
 
     The ONNX session and tokenizer are loaded once per instance and
     reused for every call, the same "load once, reuse across requests"
-    pattern ``rag/retrieval.py`` already uses for the FAISS index itself.
+    pattern ``rag/vectorstore.py`` uses for the Qdrant client.
     Callers (``ingestion/build_index.py``, ``rag/retrieval.py``) should
     each hold a single module-level instance rather than constructing a
     new one per call.
@@ -162,8 +161,8 @@ class OnnxBgeEmbeddings(Embeddings):
         return self._embed([text])[0]
 
 
-# Module-level singleton, mirroring rag/retrieval.py's cached FAISS index
-# and rag/generation.py's cached ChatNVIDIA client: loading the ONNX
+# Module-level singleton, mirroring rag/vectorstore.py's cached Qdrant
+# client and rag/generation.py's cached ChatNVIDIA client: loading the ONNX
 # session and tokenizer from disk (downloading them on first use) is a
 # one-time cost, not something to repeat per call or per request.
 _embedder: OnnxBgeEmbeddings | None = None

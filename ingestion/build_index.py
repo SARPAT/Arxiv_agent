@@ -1,37 +1,49 @@
-"""Build a persisted FAISS vector index from the 7 target arXiv papers.
+"""Ingest the 7 target arXiv papers into the Qdrant Cloud collection.
 
 Fetches each paper via ArxivLoader, strips its references section, chunks
 the remaining text, adds synthetic doc-list and per-paper metadata chunks,
-embeds everything with ``rag.embedder.get_embedder()``, and persists the
-FAISS index to data/docstore_index/. The corpus is static day-to-day, but
-this script does get re-run whenever the corpus or embedder changes (a
-content-gap fix, a recalibration, a runtime swap) - not on every app boot.
+embeds everything with ``rag.embedder.get_embedder()``, and upserts the
+result into Qdrant under the ``"public"`` tenant. The corpus is static
+day-to-day, but this script does get re-run whenever the corpus or
+embedder changes (a content-gap fix, a recalibration, a runtime swap) -
+not on every app boot.
+
+Checkpoint 6 replaced the local FAISS index with Qdrant Cloud, so there is
+no longer an index binary written to disk or committed to the repo;
+re-running this script *is* the migration. It is idempotent: point ids are
+a deterministic UUID5 of the chunk's identity (see
+``rag.vectorstore.point_id``), so a re-run overwrites the same points
+rather than appending duplicates. Nothing here deletes the collection
+first.
 
 As the last step of a successful run, bumps Redis's corpus:version (see
-app/cache.py's increment_corpus_version()), so a freshly rebuilt index
+app/cache.py's increment_corpus_version()), so a freshly rebuilt corpus
 can never be silently served stale cached retrieval results under the
 old version number - a structural fix for that exact bug happening twice
 when the bump was a manual, easily-forgotten step. This means running
-this script now requires a reachable REDIS_URL, which it previously
-didn't.
+this script needs a reachable REDIS_URL as well as Qdrant credentials.
 """
 
 import re
 from collections import Counter
 
 from langchain_community.document_loaders import ArxivLoader
-from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from app.cache import increment_corpus_version
-from rag.embedder import get_embedder
+from rag.vectorstore import (
+    count_points,
+    embedding_dimension,
+    ensure_collection,
+    upsert_chunks,
+)
 
-# Shared with rag/retrieval.py (Checkpoint 4f) rather than each owning its
-# own embedding logic - Checkpoint 4e found this script had drifted onto
-# its own hardcoded model constant, which would have silently built an
-# index at the wrong dimensionality for what the running app queries with.
-INDEX_PATH = "data/docstore_index"
+# The tenant every chunk of the shared arXiv corpus is written under.
+# Checkpoint 7's user uploads will use a session id instead, in the same
+# collection - see rag/vectorstore.py.
+CORPUS_TENANT_ID = "public"
+
 CHUNK_SIZE = 1000
 CHUNK_OVERLAP = 150
 
@@ -271,31 +283,41 @@ def main():
     synthetic_chunks = build_synthetic_chunks()
     all_chunks = body_chunks + synthetic_chunks
 
-    print("Loading ONNX embedder...")
-    embeddings = get_embedder()
-    embedding_dim = len(embeddings.embed_query("dimension check"))
+    print("Ensuring Qdrant collection exists...")
+    ensure_collection()
+    print(f"Embedding dimension: {embedding_dimension()}")
 
-    print(f"Embedding {len(all_chunks)} chunks and building FAISS index...")
-    vectorstore = FAISS.from_documents(all_chunks, embeddings)
-    vectorstore.save_local(INDEX_PATH)
+    print(f"Embedding {len(all_chunks)} chunks and upserting into Qdrant...")
+    upserted = upsert_chunks(all_chunks, tenant_id=CORPUS_TENANT_ID)
 
-    per_paper_counts = Counter(chunk.metadata["paper_key"] for chunk in all_chunks)
+    # Verification summary read back from Qdrant itself, not from the local
+    # chunk list - the point of it is to confirm what actually landed in
+    # the collection, which is also what catches a partial or duplicated
+    # upsert that the in-process counts would happily agree with.
+    local_paper_counts = Counter(chunk.metadata["paper_key"] for chunk in all_chunks)
+    local_type_counts = Counter(chunk.metadata["chunk_type"] for chunk in all_chunks)
 
     print("\n--- Ingestion summary ---")
-    print(f"Total chunks: {len(all_chunks)}")
-    print(f"Embedding dimension: {embedding_dim}")
-    print("Chunks per paper:")
-    for paper_key in TARGET_PAPERS:
-        print(f"  {paper_key}: {per_paper_counts[paper_key]}")
-    print(f"  meta (doc-list): {per_paper_counts['meta']}")
-    print(f"Index persisted to {INDEX_PATH}/")
+    print(f"Chunks upserted this run: {upserted}")
+    print(f"Total points in collection: {count_points()}")
+    print(f"Points for tenant {CORPUS_TENANT_ID!r}: {count_points(tenant_ids=[CORPUS_TENANT_ID])}")
 
-    # Last step, only reached once the index above is fully saved to disk -
-    # see the module docstring and increment_corpus_version()'s own
-    # docstring for why this deliberately does not catch a Redis error:
-    # this run's index is safely on disk either way, but a failed bump
-    # must be loud, not swallowed, since silently swallowing it is the
-    # exact bug this call exists to close.
+    print("chunk_type:")
+    for chunk_type in sorted(local_type_counts):
+        remote = count_points(field="chunk_type", value=chunk_type)
+        print(f"  {chunk_type}: {remote} (local {local_type_counts[chunk_type]})")
+
+    print("paper_key:")
+    for paper_key in list(TARGET_PAPERS) + ["meta"]:
+        remote = count_points(field="paper_key", value=paper_key)
+        print(f"  {paper_key}: {remote} (local {local_paper_counts[paper_key]})")
+
+    # Last step, only reached once every chunk above is in Qdrant - see the
+    # module docstring and increment_corpus_version()'s own docstring for
+    # why this deliberately does not catch a Redis error: the corpus is
+    # safely upserted either way, but a failed bump must be loud, not
+    # swallowed, since silently swallowing it is the exact bug this call
+    # exists to close.
     new_version = increment_corpus_version()
     print(
         f"Bumped corpus:version to {new_version} in Redis - cached "
