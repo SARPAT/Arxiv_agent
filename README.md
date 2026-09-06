@@ -1,115 +1,180 @@
 # Arxiv Agent
 
-A retrieval-augmented generation (RAG) system for answering questions over a fixed corpus of arXiv papers on NLP and LLM research, combining a self-hosted ONNX Runtime embedder with NVIDIA-hosted LLMs for generation.
+> Retrieval-augmented Q&A over a curated corpus of arXiv NLP/LLM papers, with a self-hosted embedder and streamed, source-attributed answers.
 
-**Work in progress.** This repository is in early development — a full README with architecture diagram and evaluation results will be added once the core pipeline is built.
+![Python](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
+![Qdrant](https://img.shields.io/badge/Vector_store-Qdrant_Cloud-DC244C?logo=qdrant&logoColor=white)
+![NVIDIA NIM](https://img.shields.io/badge/LLM-NVIDIA_NIM-76B900?logo=nvidia&logoColor=white)
+![Redis](https://img.shields.io/badge/Cache-Redis-DC382D?logo=redis&logoColor=white)
+![Render](https://img.shields.io/badge/Backend-Render-46E3B7?logo=render&logoColor=black)
+![Hugging Face Spaces](https://img.shields.io/badge/Frontend-HF_Spaces-FFD21E?logo=huggingface&logoColor=black)
+![License](https://img.shields.io/badge/License-MIT-yellow.svg)
 
-**Model choices:** Generation uses `nvidia/nemotron-3.5-lightning-30b-a3b` via NVIDIA NIM (verified 2026-08-30), picked from NVIDIA's own Nemotron lineage over third-party re-hosted checkpoints after two prior picks — `meta/mixtral-8x7b-instruct` and `meta/llama-3.1-8b-instruct` — were deprecated mid-build.
+---
 
-Embedding uses `BAAI/bge-small-en-v1.5` (384-dim, zero cost, zero rate limit, zero vendor deprecation risk), run via **ONNX Runtime** rather than `torch`/`sentence-transformers` (Checkpoint 4f) — see `rag/embedder.py`. This replaced two earlier assumptions that turned out wrong under real deployment constraints: Checkpoint 4e assumed *model weight size* was the dominant memory cost on Render's free tier and swapped `bge-base` for `bge-small` alone; a continuous, uninterrupted memory trace showed baseline memory climbing well past 700MB within 15 seconds of process start, before any request or model load — the real cost was `torch` + `sentence-transformers` + `langchain`'s own import and runtime footprint, not the model file. Checkpoint 4f removes that framework instead of just shrinking the model on top of it. The ONNX model source (`Xenova/bge-small-en-v1.5`) was confirmed live rather than guessed blind; see `rag/embedder.py` for the exact files and the pooling-strategy verification.
+## Live demo
 
-## Vector store
+**[Try it on Hugging Face Spaces →](https://huggingface.co/spaces/sarapatel/Research-Agent)**
 
-Vectors live in a **Qdrant Cloud** collection (Checkpoint 6). Before that
-the corpus was a FAISS index built locally and committed to the repo as a
-binary, loaded into the web service's memory at startup; that path is gone
-entirely — there is no index file, no local index loading, and no
-configuration flag selecting between the two. Rollback is `git revert`,
-not a toggle.
+---
 
-The collection uses a **named vector `"dense"`** (384-dim, cosine). The
-name is deliberate: a collection's vector configuration is immutable after
-creation, so an unnamed default vector would have to be deleted and
-re-ingested just to add a sparse vector later. Sparse/hybrid retrieval is
-not implemented — this naming is the only concession to it.
+## Architecture
 
-**Multi-tenancy** is a single collection with a `tenant_id` payload field,
-indexed with `is_tenant=True` so Qdrant physically co-locates each
-tenant's vectors on disk (its documented recommendation for this pattern).
-Every chunk of the shared arXiv corpus is written under `tenant_id:
-"public"`. Retrieval takes a *list* of tenant ids, so a future change can
-search the shared corpus and a user's own uploads in one query.
+```mermaid
+flowchart LR
+    User(["User"]) --> UI["Gradio UI<br>HF Space"]
+    UI -->|POST /chat| API["FastAPI<br>Render"]
+    API --> Cache{"Redis<br>cache hit?"}
+    Cache -->|hit| Ctx["Build context"]
+    Cache -->|miss| Embed["ONNX embedder<br>in-process"]
+    Embed --> Qdrant[("Qdrant Cloud<br>vector search")]
+    Qdrant --> Ctx
+    Ctx --> Gen["NVIDIA NIM<br>generation"]
+    Gen -->|SSE token stream| UI
+    UI --> User
+```
 
-Planned user document upload (Checkpoint 7) will be **session-scoped**:
-uploads get the session id as their `tenant_id`, which means they do not
-persist beyond the session. That is a deliberate limitation of this
-design — session-scoped uploads need no account system, no per-user
-storage quota, and no deletion/GDPR story — not an oversight.
+<details>
+<summary><b>Click to expand the full request-time diagram</b> — every hop, cache layer and external service</summary>
 
-**Score direction changed with the backend.** FAISS returned an L2
-distance where *lower* was a better match; Qdrant returns cosine
-similarity where *higher* is better. The embedder L2-normalizes its
-output, so the two rank identically and retrieval quality is unchanged —
-but any score value recorded before Checkpoint 6 is not comparable with
-one recorded after it.
+<br>
+<a href="docs/architecture.png">
+  <img src="docs/architecture.png" alt="Arxiv Agent architecture — request-time flow from the Gradio frontend through the FastAPI backend, Redis cache, Qdrant Cloud vector search and NVIDIA NIM generation" width="100%">
+</a>
 
-`ingestion/build_index.py` is the migration: re-running it upserts the
-corpus into Qdrant using deterministic point ids, so a re-run overwrites
-rather than duplicates.
+<sub><i>Click the image for the full-resolution version.</i></sub>
 
-## Deployment
 
-The backend (`app/api.py`) deploys to [Render](https://render.com) as a
-Python web service, configured via the `render.yaml` Blueprint at the repo
-root — Render reads it directly, no manual dashboard setup beyond
-supplying the declared environment variables (`NVIDIA_API_KEY`,
-`REDIS_URL`, `QDRANT_URL`, `QDRANT_API_KEY`, `CORS_ALLOWED_ORIGIN`) it
-doesn't ship values for; `QDRANT_COLLECTION` ships with a default. See
-`.env.example` for the same set for local development. The
-frontend (`ui/app.py`) deploys separately as a Gradio Space on
-[Hugging Face Spaces](https://huggingface.co/spaces), pointed at the
-Render backend via its own `BACKEND_URL` environment variable.
+```mermaid
+flowchart TB
+ subgraph Backend["Render backend · FastAPI · arxiv-agent-api"]
+    direction TB
+        Chat["Chat endpoint"]
+        Cache["1 · Check retrieval cache"]
+        Hit{"Cache hit?"}
+        Embed["2 · Embed query<br>ONNX · bge-small-en-v1.5 · 384-dim"]
+        Search["3 · Vector search<br>top-k ranked chunks"]
+        Context["4 · Build context<br>character-budget truncation"]
+        Generate["5 · Generate answer<br>provenance rules"]
+        Stream["6 · Stream SSE token deltas<br>done: sources + session_id"]
+        History["7 · Store session history<br>multi-turn context"]
+  end
+    User(["User"]) -->|Types a question| Frontend["HF Space · Gradio frontend<br>sarapatel/Research-Agent"]
+    Frontend -->|"HTTP POST /chat · BACKEND_URL"| Chat
+    Chat --> Cache
+    Cache --> Hit
+    Hit -->|Yes| Context
+    Hit -->|No| Embed
+    Embed --> Search
+    Search -->|Cache result| Redis
+    Search --> Context
+    Context --> Generate
+    Generate --> Stream
+    Stream --> History
+    Stream -->|Streamed answer + sources| Frontend
+    Frontend -->|Renders response| User
+    Cache <--> Redis[("Upstash Redis<br>retrieval cache + session store")]
+    History <--> Redis
+    Search <--> Qdrant[("Qdrant Cloud<br>arxiv_agent · dense vector · 384 · cosine<br>tenant_id = public")]
+    Generate <--> NIM["NVIDIA NIM<br>nemotron-3.5-lightning-30b-a3b"]
+    Embed -.-> Hub["Hugging Face Hub<br>model + tokenizer download"]
+    Frontend -. Planned · document upload .-> Upload["Upload endpoint<br>chunk + embed user document<br>tenant_id = session_id"]
+    Upload -. Same collection .-> Qdrant
+    Dashboard["Observability dashboard<br>latency · retrieval scores · cache hits<br>generation errors · session activity"] -. Planned · observes .-> Chat
+```
 
-**Embedding is genuinely self-hosted in production, not just in local
-development.** The embedding model runs in-process (via ONNX Runtime,
-CPU-only — see Checkpoint 4f above) inside the same Render web service
-that serves `/chat` — there's no separate embedding API in the loop. This
-is a real deployment decision, not just a diagram: it's what keeps the
-system free to run, at the cost of the service's own memory budget having
-to fit the embedder alongside everything else Render's free tier allows
-(512MB total) — the reason this project went through two rounds of
-memory-driven changes (Checkpoint 4e, then 4f) to fit inside it.
+</details>
 
-Vector *storage*, unlike embedding, is no longer in-process: Checkpoint 6
-moved it to Qdrant Cloud's free tier (see **Vector store** above). That
-trades one managed dependency for a chunk of the memory budget the
-committed FAISS index used to occupy, and removes a binary from the repo.
+---
 
-**Cold starts, stated plainly:** Render's free tier spins the service down
-after 15 minutes of no traffic. The first request after that has to wait
-for a full cold start — roughly 30-60 seconds — before it gets a
-response. This is a real, user-visible limitation of running on a free
-tier, not a bug; a paid Render plan (or a scheduled keep-alive ping)
-removes it, but neither is in scope here.
+## Features
 
-**What's implemented here vs. what still needs a human:** the retry/timeout
-logic, the SSE `error` event, CORS support, and the `render.yaml` Blueprint
-are all implemented and tested (see Checkpoint 4d's PR). Actually deploying
-— creating a Render account and a Hugging Face account, connecting this
-repo, running the Blueprint, creating the Space, and wiring the two
-together with real URLs — requires human-created accounts and dashboard
-access this environment doesn't have, and hasn't happened yet.
+- **Grounded Q&A** over seven foundational arXiv papers (Transformers, BERT, RAG, MRKL, Mistral 7B, LLM-as-a-Judge, RAG survey).
+- **Token-by-token streaming** to the browser over Server-Sent Events.
+- **Multi-turn conversations** backed by a Redis session store with a rolling one-hour TTL.
+- **Source attribution** built from retrieved chunk metadata, not parsed out of model text.
+- **Explicit provenance split** — corpus-grounded answers cite papers; general-knowledge answers are labelled as such and cite nothing.
+- **Self-hosted embeddings** running in-process via ONNX Runtime — no third-party embedding API in the request path.
+- **Two-layer caching** keyed on corpus version, embedder fingerprint and generation prompt/model hash, so a re-ingest or prompt change invalidates automatically.
+- **Multi-tenant vector store** — every point carries a `tenant_id`, indexed for tenant-local search.
+- **Resilient generation** — per-attempt timeouts, retry on transient failures, and a distinct SSE `error` frame.
+
+---
+
+## Tech stack
+
+| Component | Technology |
+|---|---|
+| **Embedding** | `BAAI/bge-small-en-v1.5` (384-dim), ONNX Runtime, CLS pooling + L2 normalization |
+| **Generation** | `nvidia/nemotron-3.5-lightning-30b-a3b` via NVIDIA NIM |
+| **Vector store** | Qdrant Cloud — single collection, named `dense` vector, cosine distance |
+| **Cache & sessions** | Redis (Upstash) — retrieval cache, embedding cache, conversation history |
+| **Backend** | FastAPI + Uvicorn, SSE streaming, deployed on Render |
+| **Frontend** | Gradio, deployed on Hugging Face Spaces |
+
+---
+
+## Project structure
+
+```
+.
+├── app/          FastAPI service — /chat SSE endpoint, settings, Redis cache and session store
+├── rag/          Retrieval pipeline — embedder, Qdrant client, retrieval, generation, orchestration
+├── ingestion/    Corpus build — arXiv fetch, chunking, synthetic overview chunks, Qdrant upsert
+├── eval/         Golden-set evaluation harness and recorded results
+├── scripts/      Operational diagnostics for the embedder, collection and caches
+└── ui/           Gradio chat frontend
+```
+
+---
+
+## Running locally
+
+1. **Clone**
+   ```bash
+   git clone https://github.com/SARPAT/Arxiv_agent.git && cd Arxiv_agent
+   ```
+2. **Install**
+   ```bash
+   python -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt
+   ```
+3. **Configure** — copy `.env.example` to `.env` and set `NVIDIA_API_KEY`, `REDIS_URL`, `QDRANT_URL`, `QDRANT_API_KEY`.
+4. **Ingest the corpus** — fetches the papers, chunks them and upserts into Qdrant.
+   ```bash
+   python -m ingestion.build_index
+   ```
+5. **Run the API**
+   ```bash
+   uvicorn app.api:app --reload
+   ```
+6. **Run the UI** in a second shell.
+   ```bash
+   BACKEND_URL=http://localhost:8000 python ui/app.py
+   ```
+
+> `QDRANT_COLLECTION` and `CORS_ALLOWED_ORIGIN` are optional and ship with sensible defaults.
+
+---
 
 ## Evaluation
 
-| | Checkpoint 3 (`bge-base`) | Checkpoint 4e (`bge-small` + `sentence-transformers`) | Checkpoint 4f (`bge-small` + ONNX) |
-|---|---|---|---|
-| `recall_at_5` / `recall_at_8` / `mrr` | see `eval/results_checkpoint3.json` | not run — 4e's PR closed before this step | pending |
-| `false_accept_rate` / `false_reject_rate` | see `eval/results_checkpoint3.json` | not run | pending |
-| `context_survival_rate` | see `eval/results_checkpoint3.json` | not run | pending |
+A golden-set harness (`python -m eval.run_eval`) scores the pipeline against **200 hand-written questions** — 150 answerable from the corpus, 50 deliberately outside it.
 
-Checkpoint 4e's own re-ingest/recalibrate/re-eval cycle never happened —
-its PR was closed before that step, and this checkpoint's index/threshold/
-eval are all being regenerated fresh against the ONNX pipeline instead of
-building on 4e's. Checkpoint 4f's own numbers require re-running
-`ingestion/build_index.py`, `eval/calibrate_threshold.py`, and
-`eval/run_eval.py --output-suffix checkpoint4f` for real, which needs
-network access to Hugging Face and arXiv that this sandbox does not have.
-This table gets filled in once that happens.
+- **Retrieval quality** — Recall@5, Recall@8 and Mean Reciprocal Rank over the in-corpus set.
+- **False attribution** — how often an out-of-corpus answer is wrongly credited to a real paper, reported overall and split by question subtype.
+- **Context survival** — whether the top-ranked chunk actually survives the context budget into the prompt.
 
-Note: the confidence gate was later removed (the pipeline now always
-answers and labels provenance via the system prompt), so `false_reject_rate`
-is no longer a metric `eval/run_eval.py` reports — the pipeline can't
-reject a question anymore. `false_accept_rate` remains and, with the gate
-gone, is now the primary guard the eval measures: it catches an
-out-of-corpus answer falsely attributed to a real paper.
+Per-question detail and headline summaries are written to `eval/` as JSON.
+
+---
+
+## Roadmap
+
+- **Hybrid search** — BM25 sparse retrieval fused with the existing dense vectors.
+- **User document upload** — bring your own PDF, chunked and embedded into a session-scoped tenant.
+- **Observability dashboard** — latency, retrieval scores, cache hit rates, generation errors and session activity.
+
+---
+
+Built by [Saransh Patel](https://sarpat.github.io)
