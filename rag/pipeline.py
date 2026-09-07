@@ -26,6 +26,7 @@ from langchain_community.document_transformers import LongContextReorder
 from langchain_core.documents import Document
 
 from app.config import settings
+from app.session import tenant_ids_for
 from ingestion.build_index import TARGET_PAPERS
 from rag.generation import (
     GENERAL_KNOWLEDGE_MARKER,
@@ -117,22 +118,33 @@ def assemble_context(
 
 
 def retrieved_paper_titles(docs: list[Document]) -> list[str]:
-    """Canonical corpus paper titles for the retrieved chunks, deduped in
-    retrieval order.
+    """Source titles for the retrieved chunks, deduped in retrieval order.
 
     This is the structured source list for a grounded answer - drawn from
     the actual retrieved chunk metadata, not parsed from the model's
     output (the model no longer writes its own "Sources:" line; see the
-    system prompt in ``rag/generation.py``). Each chunk's ``paper_key`` is
-    mapped to its title via ``TARGET_PAPERS``, which naturally excludes
-    synthetic non-paper chunks such as the doc-list chunk (``paper_key``
-    "meta", not a real paper).
+    system prompt in ``rag/generation.py``).
+
+    A corpus chunk's ``paper_key`` resolves to its canonical title through
+    ``TARGET_PAPERS``, so the title shown is the paper's real one rather
+    than whatever a chunk happens to carry. Anything not in ``TARGET_PAPERS``
+    falls back to its own ``Title`` metadata, which is what surfaces an
+    uploaded document (Checkpoint 7) - its ``paper_key`` is a sanitized
+    filename and will never be a corpus key. Without that fallback an
+    upload would be retrieved, answered from, and then silently credited
+    to nothing.
+
+    Synthetic non-paper chunks stay excluded either way: the doc-list and
+    per-paper metadata chunks carry no ``Title``, so they resolve to
+    nothing and are dropped. Every access is ``.get()`` - a chunk missing
+    a field must be skipped, never raise mid-response.
     """
     titles: list[str] = []
     for doc in docs:
         info = TARGET_PAPERS.get(doc.metadata.get("paper_key"))
-        if info and info["title"] not in titles:
-            titles.append(info["title"])
+        title = info["title"] if info else doc.metadata.get("Title") or ""
+        if title and title not in titles:
+            titles.append(title)
     return titles
 
 
@@ -162,8 +174,17 @@ class PipelineResult:
     docs: list[Document]
 
 
-def retrieve_context(query: str) -> tuple[list[Document], float]:
+def retrieve_context(
+    query: str, session_id: str = ""
+) -> tuple[list[Document], float]:
     """Retrieve the top ``settings.retrieval_k`` chunks for ``query``.
+
+    ``session_id`` selects the tenants searched: the shared corpus alone,
+    or the corpus plus that session's uploaded document once it has one
+    (see ``app.session.tenant_ids_for``). It is threaded through
+    explicitly rather than read from a global or a context variable,
+    because this module is also called directly by the eval harness, where
+    there is no session at all.
 
     Returns ``(docs, top1_score)``. Every query proceeds to generation —
     there is no gate — so this no longer makes an abstain/proceed decision;
@@ -172,14 +193,18 @@ def retrieve_context(query: str) -> tuple[list[Document], float]:
     is still returned as telemetry, not as a gate input: it's reported in
     the ``done`` event and by the eval harness, but nothing branches on it.
     """
-    retrieved = retrieve(query, k=settings.retrieval_k)
+    retrieved = retrieve(
+        query, k=settings.retrieval_k, tenant_ids=tenant_ids_for(session_id)
+    )
     docs = [doc for doc, _score in retrieved]
     top1_score = retrieved[0][1]
     return docs, top1_score
 
 
 def run_pipeline(
-    query: str, history: list[dict[str, str]] | None = None
+    query: str,
+    history: list[dict[str, str]] | None = None,
+    session_id: str = "",
 ) -> PipelineResult:
     """Run one full turn of the RAG pipeline.
 
@@ -187,7 +212,7 @@ def run_pipeline(
     ``rag/generation.py``) is what decides whether to ground the answer in
     the retrieved context or answer from clearly-labeled general knowledge.
     """
-    docs, top1_score = retrieve_context(query)
+    docs, top1_score = retrieve_context(query, session_id)
     context = assemble_context(docs)
     answer = generate(query, context, history=history)
     return PipelineResult(
@@ -199,7 +224,9 @@ def run_pipeline(
 
 
 def run_pipeline_stream(
-    query: str, history: list[dict[str, str]] | None = None
+    query: str,
+    history: list[dict[str, str]] | None = None,
+    session_id: str = "",
 ) -> Iterator[dict]:
     """Run one full turn of the RAG pipeline, streaming the answer.
 
@@ -220,7 +247,7 @@ def run_pipeline_stream(
     ``done`` event reflects what the finished answer actually cited (which
     may be the general-knowledge disclaimer line, carrying no paper title).
     """
-    docs, top1_score = retrieve_context(query)
+    docs, top1_score = retrieve_context(query, session_id)
 
     context = assemble_context(docs)
     accumulated = []
@@ -260,7 +287,11 @@ def run_pipeline_stream(
     }
 
 
-def answer_query(query: str, history: list[dict[str, str]] | None = None) -> str:
+def answer_query(
+    query: str,
+    history: list[dict[str, str]] | None = None,
+    session_id: str = "",
+) -> str:
     """Run one turn of the RAG pipeline and return just the answer text.
 
     ``history`` is optional prior conversation turns, forwarded straight to
@@ -270,7 +301,7 @@ def answer_query(query: str, history: list[dict[str, str]] | None = None) -> str
     safely for many concurrent users without their histories bleeding into
     each other.
     """
-    return run_pipeline(query, history=history).answer
+    return run_pipeline(query, history=history, session_id=session_id).answer
 
 
 if __name__ == "__main__":

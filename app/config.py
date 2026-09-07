@@ -61,6 +61,16 @@ class Settings(BaseSettings):
     qdrant_api_key: str
     qdrant_collection: str = "arxiv_agent"
 
+    # Checkpoint 7 (user document upload). Unlike the Qdrant credentials
+    # these all get defaults: each is a policy limit rather than a
+    # connection detail the app cannot function without, so an unset one
+    # must not be able to fail a deploy. upload_timeout_seconds bounds how
+    # long one PDF may occupy a worker - a pathological file should return
+    # an error, not pin a process on a free-tier instance that has few.
+    max_upload_bytes: int = 10 * 1024 * 1024
+    min_extracted_chars: int = 100
+    upload_timeout_seconds: int = 60
+
     retrieval_k: int = 4
     max_context_chars: int = 2500
 

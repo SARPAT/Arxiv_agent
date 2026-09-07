@@ -33,6 +33,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from app.cache import increment_corpus_version
 from rag.vectorstore import (
+    PUBLIC_TENANT_ID,
     count_points,
     embedding_dimension,
     ensure_collection,
@@ -42,10 +43,22 @@ from rag.vectorstore import (
 # The tenant every chunk of the shared arXiv corpus is written under.
 # Checkpoint 7's user uploads will use a session id instead, in the same
 # collection - see rag/vectorstore.py.
-CORPUS_TENANT_ID = "public"
+CORPUS_TENANT_ID = PUBLIC_TENANT_ID
 
 CHUNK_SIZE = 1000
 CHUNK_OVERLAP = 150
+
+
+def build_splitter() -> RecursiveCharacterTextSplitter:
+    """The one chunker used for every body chunk in the collection.
+
+    Corpus ingestion and ``ingestion/upload.py`` both call this rather
+    than constructing their own, so an uploaded document is chunked
+    exactly like a corpus paper and the two settings cannot drift into
+    producing differently-sized neighbours in the same index."""
+    return RecursiveCharacterTextSplitter(
+        chunk_size=CHUNK_SIZE, chunk_overlap=CHUNK_OVERLAP
+    )
 
 TARGET_PAPERS = {
     "attention": {
@@ -276,10 +289,7 @@ def main():
         for paper_key, info in TARGET_PAPERS.items()
     ]
 
-    splitter = RecursiveCharacterTextSplitter(
-        chunk_size=CHUNK_SIZE, chunk_overlap=CHUNK_OVERLAP
-    )
-    body_chunks = splitter.split_documents(papers)
+    body_chunks = build_splitter().split_documents(papers)
     synthetic_chunks = build_synthetic_chunks()
     all_chunks = body_chunks + synthetic_chunks
 

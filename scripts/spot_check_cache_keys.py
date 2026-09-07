@@ -3,6 +3,13 @@ cache_identifier() shape (``{repo}:{10-hex-hash}``) post-rebuild, not
 stale entries left over from the old settings.embedding_model-keyed
 format or the pre-index-rebuild embedder.
 
+Retrieval keys are decoded with ``app.cache.parse_retrieval_key()`` rather
+than by segment position here. Position-counting is what broke this script
+in Checkpoint 6 (a backend segment was inserted and every live key was
+reported stale), and Checkpoint 7 has since inserted a tenant-scope
+segment as well; reading through the same definition that writes the keys
+retires that failure mode instead of patching it a third time.
+
 Read-only: SCANs (never KEYS, to avoid blocking a live Redis) for
 ``embedding:*``/``retrieval:*`` keys and prints a sample. Requires a
 reachable REDIS_URL - cannot run against the real deployment from this
@@ -12,8 +19,14 @@ rebuild + redeploy, before assuming the cache layer is healthy.
 
 import re
 
-from app.cache import RETRIEVAL_BACKEND, _client
+from app.cache import (
+    RETRIEVAL_BACKEND,
+    _client,
+    parse_retrieval_key,
+    tenant_scope_id,
+)
 from rag.embedder import cache_identifier
+from rag.vectorstore import PUBLIC_TENANT_ID
 
 SAMPLE_SIZE = 10
 
@@ -32,7 +45,9 @@ def _scan_sample(pattern: str, limit: int) -> list[str]:
 
 def main():
     current_identifier = cache_identifier()
+    public_scope = tenant_scope_id([PUBLIC_TENANT_ID])
     print(f"Current rag.embedder.cache_identifier(): {current_identifier!r}")
+    print(f"Public-only tenant scope: {public_scope!r}")
 
     for prefix in ("embedding", "retrieval"):
         print(f"\n--- Sampling up to {SAMPLE_SIZE} '{prefix}:*' keys ---")
@@ -42,29 +57,47 @@ def main():
             continue
 
         for key in keys:
-            # Key shapes:
-            #   embedding:<identifier>:<query_hash>
-            #   retrieval:<backend>:<identifier>:<prompt_hash>:<version>:<hash>
-            # Checkpoint 6 prepended a retrieval-backend segment ("qdrant"),
-            # so the identifier sits one segment further along for retrieval
-            # keys - without this the identifier would be misread as
-            # "qdrant:<repo>" and every live key would be reported stale.
-            body = key[len(prefix) + 1 :]
-            segments = body.split(":")
-            backend = None
-            if prefix == "retrieval":
-                backend = segments[0]
-                segments = segments[1:]
-            identifier_part = ":".join(segments[:2])  # "<repo>:<hash>"
+            if prefix == "embedding":
+                # embedding:<repo>:<hash>:<query_hash> - the identifier is
+                # simply the two segments after the prefix.
+                identifier_part = ":".join(key.split(":")[1:3])
+                backend = tenant_scope = None
+            else:
+                # Retrieval keys are read through app.cache's own parser
+                # rather than by counting segments here. That coupling is
+                # the point: this script silently misread every live key
+                # when Checkpoint 6 inserted the backend segment, and
+                # Checkpoint 7 inserted a tenant-scope segment too. Reading
+                # through the writer's definition makes that class of drift
+                # impossible instead of merely fixed once more.
+                parsed = parse_retrieval_key(key)
+                if parsed is None:
+                    print(f"  {key}")
+                    print(
+                        "    WARNING: not the current retrieval key shape - a "
+                        "stale entry written before a key segment was added. "
+                        "Flush it rather than trusting it."
+                    )
+                    continue
+                identifier_part = parsed["embedder"]
+                backend = parsed["backend"]
+                tenant_scope = parsed["tenant_scope"]
+
             matches_shape = bool(_EXPECTED_IDENTIFIER_RE.match(identifier_part))
             matches_current = identifier_part == current_identifier
             print(f"  {key}")
-            print(
-                f"    {'backend=' + repr(backend) + ' ' if backend else ''}"
-                f"identifier={identifier_part!r} "
-                f"matches_cache_identifier_shape={matches_shape} "
-                f"matches_current_identifier={matches_current}"
-            )
+            details = [f"identifier={identifier_part!r}"]
+            if backend is not None:
+                details.insert(0, f"backend={backend!r}")
+            if tenant_scope is not None:
+                scope_label = (
+                    "public-only" if tenant_scope == public_scope else "session upload"
+                )
+                details.append(f"tenant_scope={tenant_scope!r} ({scope_label})")
+            details.append(f"matches_cache_identifier_shape={matches_shape}")
+            details.append(f"matches_current_identifier={matches_current}")
+            print("    " + " ".join(details))
+
             if backend is not None and backend != RETRIEVAL_BACKEND:
                 print(
                     f"    WARNING: retrieval key written by backend {backend!r}, "
