@@ -51,6 +51,24 @@ embedding cache key does NOT carry this - a query's raw embedding doesn't
 depend on the generation config, only the retrieval result's downstream
 use does.
 
+Checkpoint 7 added a **tenant-scope** segment, and it is a correctness
+requirement rather than an optimisation. Once a session can upload its own
+document, two sessions asking the same question no longer deserve the same
+chunks: without this segment session B would hit session A's cached entry
+and be served chunks from A's private upload. The segment is a hash of the
+*sorted* tenant id list actually searched, so every public-only query still
+collapses onto one shared entry (the shared corpus stays exactly as
+cacheable as before) and only sessions that have uploaded something get
+their own.
+
+Because that key has now grown a segment twice, it is built and parsed in
+exactly one place - ``_retrieval_key()`` and ``parse_retrieval_key()``,
+both driven by ``RETRIEVAL_KEY_SEGMENTS``. ``scripts/spot_check_cache_keys.py``
+read the key by hardcoded segment position and silently misparsed every
+live key when Checkpoint 6 inserted the backend segment; it now reads
+through the parser here, so adding a segment is a one-line change instead
+of a broken diagnostic nobody notices.
+
 This module knows nothing about ``rag/``'s ``Document`` type on purpose:
 callers pass and receive plain JSON-safe data (embedding vectors as
 ``list[float]``, retrieved chunks as ``{"page_content": ..., "metadata":
@@ -86,6 +104,24 @@ CORPUS_VERSION_KEY = "corpus:version"
 # naming the backend in the key makes it structural rather than
 # incidental, the same protective pattern as the embedder identifier.
 RETRIEVAL_BACKEND = "qdrant"
+
+# Ordered names of the ":"-separated segments following the "retrieval:"
+# prefix. _retrieval_key() emits them in this order and
+# parse_retrieval_key() reads them back against the same tuple, so the
+# construction and parsing of a retrieval key cannot drift apart - which
+# they did in Checkpoint 6, when a segment was inserted here and
+# scripts/spot_check_cache_keys.py went on reading the old positions and
+# reported every live key as stale. The embedder identifier occupies two
+# segments because cache_identifier() is itself "<repo>:<hash>".
+RETRIEVAL_KEY_SEGMENTS = (
+    "backend",
+    "embedder_repo",
+    "embedder_hash",
+    "response",
+    "corpus_version",
+    "tenant_scope",
+    "query",
+)
 
 # Same construction pattern as app/session.py: one client, built once at
 # import time, relying on redis-py's own connection pooling rather than
@@ -187,19 +223,61 @@ def set_cached_embedding(query: str, vector: list[float]) -> None:
         logger.warning("Redis unavailable writing embedding cache (key=%s)", key)
 
 
-def get_cached_retrieval(query: str, corpus_version: int) -> dict | None:
+def tenant_scope_id(tenant_ids: list[str]) -> str:
+    """Stable short hash of the tenant set a retrieval actually searched.
+
+    Hashing the *sorted, de-duplicated* list rather than the raw session
+    id is what keeps the shared corpus cacheable: every public-only query,
+    from every session, produces the same scope and therefore shares one
+    cache entry, while any session that has uploaded a document searches
+    ``["public", session_id]`` and gets its own. The NUL separator means
+    ``["a", "b"]`` and ``["a\x00b"]`` cannot collide onto one scope.
+    """
+    joined = "\x00".join(sorted(set(tenant_ids)))
+    return hashlib.sha256(joined.encode("utf-8")).hexdigest()[:12]
+
+
+def _retrieval_key(query: str, corpus_version: int, tenant_scope: str) -> str:
+    """The single place a retrieval cache key is built. Segment order is
+    ``RETRIEVAL_KEY_SEGMENTS``; ``parse_retrieval_key()`` is its inverse."""
+    return "retrieval:" + ":".join(
+        (
+            RETRIEVAL_BACKEND,
+            cache_identifier(),  # "<repo>:<hash>" - two segments
+            response_cache_identifier(),
+            str(corpus_version),
+            tenant_scope,
+            _query_hash(query),
+        )
+    )
+
+
+def parse_retrieval_key(key: str) -> dict[str, str] | None:
+    """Split a retrieval cache key into its named segments, or ``None`` if
+    it doesn't have the current shape (an entry written before a segment
+    was added). Used by ``scripts/spot_check_cache_keys.py`` so that
+    diagnostic reads keys through the same definition that writes them."""
+    segments = key.split(":")
+    if segments[0] != "retrieval" or len(segments) - 1 != len(RETRIEVAL_KEY_SEGMENTS):
+        return None
+    parsed = dict(zip(RETRIEVAL_KEY_SEGMENTS, segments[1:]))
+    parsed["embedder"] = f"{parsed['embedder_repo']}:{parsed['embedder_hash']}"
+    return parsed
+
+
+def get_cached_retrieval(
+    query: str, corpus_version: int, tenant_scope: str
+) -> dict | None:
     """Return the cached ``{"chunks": [...], "scores": [...]}`` retrieval
-    result for ``query`` at ``corpus_version``, or ``None`` on a cache
-    miss or Redis error.
+    result for ``query`` at ``corpus_version`` within ``tenant_scope``, or
+    ``None`` on a cache miss or Redis error.
 
     The key folds in ``response_cache_identifier()`` (the generation
-    prompt + model fingerprint) alongside ``corpus_version`` and the
-    embedder identifier, so a prompt/model change invalidates prior
-    entries without a manual flush - see ``rag/generation.py``."""
-    key = (
-        f"retrieval:{RETRIEVAL_BACKEND}:{cache_identifier()}:"
-        f"{response_cache_identifier()}:{corpus_version}:{_query_hash(query)}"
-    )
+    prompt + model fingerprint) alongside ``corpus_version``, the embedder
+    identifier and the tenant scope, so a prompt/model change invalidates
+    prior entries without a manual flush - see ``rag/generation.py`` - and
+    one session can never be served another session's uploaded chunks."""
+    key = _retrieval_key(query, corpus_version, tenant_scope)
     try:
         raw = _client.get(key)
     except redis.exceptions.RedisError:
@@ -213,16 +291,17 @@ def get_cached_retrieval(query: str, corpus_version: int) -> dict | None:
 
 
 def set_cached_retrieval(
-    query: str, corpus_version: int, chunks: list[dict], scores: list[float]
+    query: str,
+    corpus_version: int,
+    tenant_scope: str,
+    chunks: list[dict],
+    scores: list[float],
 ) -> None:
-    """Write a retrieval result for ``query`` at ``corpus_version`` to the
-    retrieval cache. Key construction mirrors ``get_cached_retrieval()`` -
-    including ``response_cache_identifier()`` - so a write and its read
-    land on the same key only while the generation config is unchanged."""
-    key = (
-        f"retrieval:{RETRIEVAL_BACKEND}:{cache_identifier()}:"
-        f"{response_cache_identifier()}:{corpus_version}:{_query_hash(query)}"
-    )
+    """Write a retrieval result for ``query`` at ``corpus_version`` within
+    ``tenant_scope`` to the retrieval cache. Both this and
+    ``get_cached_retrieval()`` build their key through ``_retrieval_key()``,
+    so a write and its read cannot land on different keys."""
+    key = _retrieval_key(query, corpus_version, tenant_scope)
     value = json_dumps_safe({"chunks": chunks, "scores": scores})
     try:
         _client.set(key, value, ex=RETRIEVAL_TTL_SECONDS)
@@ -241,6 +320,10 @@ if __name__ == "__main__":
     # is caught here instead of only against live output.
     _client = fakeredis.FakeRedis(decode_responses=True)
 
+    # Every pre-Checkpoint-7 assertion below ran against the public corpus
+    # only; naming that scope explicitly keeps them testing what they did.
+    PUBLIC = tenant_scope_id(["public"])
+
     set_cached_embedding("test query", [np.float32(0.1), np.float32(0.2)])
     embedding = get_cached_embedding("test query")
     assert embedding == [np.float32(0.1), np.float32(0.2)], embedding
@@ -249,10 +332,11 @@ if __name__ == "__main__":
     set_cached_retrieval(
         "test query",
         corpus_version=1,
+        tenant_scope=PUBLIC,
         chunks=[{"page_content": "chunk text", "metadata": {"source": "doc0"}}],
         scores=[np.float32(0.4934097)],
     )
-    retrieval = get_cached_retrieval("test query", corpus_version=1)
+    retrieval = get_cached_retrieval("test query", corpus_version=1, tenant_scope=PUBLIC)
     assert retrieval["scores"] == [np.float32(0.4934097)], retrieval
     print(
         "set_cached_retrieval()/get_cached_retrieval() handled numpy.float32 "
@@ -283,6 +367,7 @@ if __name__ == "__main__":
         set_cached_retrieval(
             "shared query",
             corpus_version=1,
+            tenant_scope=PUBLIC,
             chunks=[{"page_content": "a", "metadata": {}}],
             scores=[0.1],
         )
@@ -291,7 +376,7 @@ if __name__ == "__main__":
         assert get_cached_embedding("shared query") is None, (
             "a different cache_identifier() must not see config-a's cached embedding"
         )
-        assert get_cached_retrieval("shared query", corpus_version=1) is None, (
+        assert get_cached_retrieval("shared query", corpus_version=1, tenant_scope=PUBLIC) is None, (
             "a different cache_identifier() must not see config-a's cached retrieval"
         )
         print(
@@ -301,7 +386,7 @@ if __name__ == "__main__":
 
         this_module.cache_identifier = lambda: "config-a"
         assert get_cached_embedding("shared query") == [1.0, 2.0]
-        assert get_cached_retrieval("shared query", corpus_version=1) is not None
+        assert get_cached_retrieval("shared query", corpus_version=1, tenant_scope=PUBLIC) is not None
         print(
             "PASSED: switching back to the original cache_identifier() still finds "
             "its own cache entry."
@@ -346,12 +431,13 @@ if __name__ == "__main__":
         set_cached_retrieval(
             "q2",
             corpus_version=1,
+            tenant_scope=PUBLIC,
             chunks=[{"page_content": "c", "metadata": {}}],
             scores=[0.2],
         )
 
         this_module.response_cache_identifier = lambda: "gen-b"
-        assert get_cached_retrieval("q2", corpus_version=1) is None, (
+        assert get_cached_retrieval("q2", corpus_version=1, tenant_scope=PUBLIC) is None, (
             "a different response_cache_identifier() must not see gen-a's "
             "cached retrieval"
         )
@@ -365,7 +451,7 @@ if __name__ == "__main__":
         )
 
         this_module.response_cache_identifier = lambda: "gen-a"
-        assert get_cached_retrieval("q2", corpus_version=1) is not None
+        assert get_cached_retrieval("q2", corpus_version=1, tenant_scope=PUBLIC) is not None
         print(
             "PASSED: switching back to the original response_cache_identifier() "
             "still finds its own retrieval entry."
@@ -404,3 +490,64 @@ if __name__ == "__main__":
         "PASSED: response_cache_identifier() changes on a SYSTEM_PROMPT or "
         "generation_model change, and is stable otherwise."
     )
+
+    # --- Checkpoint 7: the cross-session leak the tenant scope exists to
+    # stop. Before this segment existed, session B asking session A's
+    # question hit A's cache entry and was served chunks from A's private
+    # upload - a real data leak that crashed nothing and looked like a
+    # working feature. These four assertions are the regression test.
+    _client.flushall()
+    session_a, session_b = "session-a", "session-b"
+    scope_a = tenant_scope_id(["public", session_a])
+    scope_b = tenant_scope_id(["public", session_b])
+    question = "what is the main contribution?"
+
+    set_cached_retrieval(
+        question,
+        corpus_version=1,
+        tenant_scope=scope_a,
+        chunks=[{"page_content": "A's private document", "metadata": {}}],
+        scores=[0.9],
+    )
+    assert get_cached_retrieval(question, corpus_version=1, tenant_scope=scope_b) is None, (
+        "LEAK: session B was served session A's cached upload chunks"
+    )
+    assert get_cached_retrieval(question, corpus_version=1, tenant_scope=PUBLIC) is None, (
+        "LEAK: a public-only query was served an uploading session's chunks"
+    )
+    assert (
+        get_cached_retrieval(question, corpus_version=1, tenant_scope=scope_a)
+        is not None
+    ), "session A must still hit its own entry"
+    print(
+        "PASSED: sessions with uploads get distinct retrieval cache keys - "
+        "no cross-session chunk leak."
+    )
+
+    # ...while the shared corpus stays exactly as cacheable as before: a
+    # public-only query is scope-identical for every session, so they all
+    # share one entry rather than each paying for its own miss.
+    assert tenant_scope_id(["public"]) == tenant_scope_id(["public"])
+    assert tenant_scope_id(["public", "s1"]) == tenant_scope_id(["s1", "public"]), (
+        "scope must not depend on tenant order"
+    )
+    assert tenant_scope_id(["public", "public"]) == tenant_scope_id(["public"]), (
+        "scope must not depend on duplicates"
+    )
+    print(
+        "PASSED: public-only queries share one cache key across sessions; "
+        "scope is order- and duplicate-independent."
+    )
+
+    # The key must survive a round trip through the parser the spot-check
+    # script reads with - the drift that broke that script in Checkpoint 6.
+    key = _retrieval_key(question, corpus_version=7, tenant_scope=scope_a)
+    parsed = parse_retrieval_key(key)
+    assert parsed is not None, key
+    assert parsed["backend"] == RETRIEVAL_BACKEND, parsed
+    assert parsed["embedder"] == cache_identifier(), parsed
+    assert parsed["corpus_version"] == "7", parsed
+    assert parsed["tenant_scope"] == scope_a, parsed
+    assert parse_retrieval_key("retrieval:qdrant:too:few:segments") is None
+    assert parse_retrieval_key(f"embedding:{cache_identifier()}:abc") is None
+    print("PASSED: parse_retrieval_key() round-trips _retrieval_key() and rejects other shapes.")

@@ -50,9 +50,10 @@ flowchart LR
 - **Multi-turn conversations** backed by a Redis session store with a rolling one-hour TTL.
 - **Source attribution** built from retrieved chunk metadata, not parsed out of model text.
 - **Explicit provenance split** — corpus-grounded answers cite papers; general-knowledge answers are labelled as such and cite nothing.
+- **Bring your own PDF** — upload a document and question it alongside the corpus, scoped to your session and searched in the same index.
 - **Self-hosted embeddings** running in-process via ONNX Runtime — no third-party embedding API in the request path.
-- **Two-layer caching** keyed on corpus version, embedder fingerprint and generation prompt/model hash, so a re-ingest or prompt change invalidates automatically.
-- **Multi-tenant vector store** — every point carries a `tenant_id`, indexed for tenant-local search.
+- **Two-layer caching** keyed on corpus version, embedder fingerprint, generation prompt/model hash and tenant scope, so a re-ingest or prompt change invalidates automatically and no session is served another's chunks.
+- **Multi-tenant vector store** — every point carries a `tenant_id`, indexed for tenant-local search, with retrieval caching scoped to the same boundary.
 - **Resilient generation** — per-attempt timeouts, retry on transient failures, and a distinct SSE `error` frame.
 
 ---
@@ -76,7 +77,7 @@ flowchart LR
 .
 ├── app/          FastAPI service — /chat SSE endpoint, settings, Redis cache and session store
 ├── rag/          Retrieval pipeline — embedder, Qdrant client, retrieval, generation, orchestration
-├── ingestion/    Corpus build — arXiv fetch, chunking, synthetic overview chunks, Qdrant upsert
+├── ingestion/    Corpus build and user PDF upload — fetch, chunk, embed, upsert
 ├── eval/         Golden-set evaluation harness and recorded results
 ├── scripts/      Operational diagnostics for the embedder, collection and caches
 └── ui/           Gradio chat frontend
@@ -127,7 +128,6 @@ Per-question detail and headline summaries are written to `eval/` as JSON.
 ## Roadmap
 
 - **Hybrid search** — BM25 sparse retrieval fused with the existing dense vectors.
-- **User document upload** — bring your own PDF, chunked and embedded into a session-scoped tenant.
 - **Observability dashboard** — latency, retrieval scores, cache hit rates, generation errors and session activity.
 
 ---

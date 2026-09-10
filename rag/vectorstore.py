@@ -35,6 +35,7 @@ Layout, all locked decisions:
 """
 
 import hashlib
+import logging
 import uuid
 
 from qdrant_client import QdrantClient, models
@@ -42,6 +43,8 @@ from qdrant_client.http.exceptions import UnexpectedResponse
 
 from app.config import settings
 from rag.embedder import get_embedder
+
+logger = logging.getLogger(__name__)
 
 # Batch size for upserts. Small enough to keep each request well inside
 # Qdrant Cloud's payload limits, large enough that a ~334-chunk corpus is
@@ -51,6 +54,13 @@ UPSERT_BATCH_SIZE = 100
 # The tenant field gets its own index type (``is_tenant=True``), so it is
 # named separately from the plain keyword-indexed fields below.
 TENANT_FIELD = "tenant_id"
+
+# The tenant holding the shared arXiv corpus. Named once here, in the
+# module that owns tenancy, and imported by ingestion and retrieval - the
+# literal was previously written out in three places, and a typo in any
+# one of them would have been a silently empty search or, worse, a corpus
+# written under a tenant nothing queries.
+PUBLIC_TENANT_ID = "public"
 
 # Payload fields that anything filters on, beyond the tenant. Qdrant Cloud
 # free-tier clusters run in strict mode, which **rejects a filter on any
@@ -171,6 +181,15 @@ def ensure_collection() -> None:
         _create_payload_index(client, field, models.PayloadSchemaType.KEYWORD)
 
 
+def _tenant_condition(tenant_ids: list[str]) -> models.FieldCondition:
+    """Match any of ``tenant_ids`` on the indexed tenant field. Shared by
+    every read and write path so they cannot disagree about what "this
+    tenant's points" means."""
+    return models.FieldCondition(
+        key=TENANT_FIELD, match=models.MatchAny(any=tenant_ids)
+    )
+
+
 def point_id(tenant_id: str, metadata: dict, text: str) -> str:
     """Deterministic UUID5 for one chunk, so re-ingesting overwrites
     rather than appends.
@@ -244,14 +263,7 @@ def search(
         query=query_vector,
         using="dense",
         limit=k,
-        query_filter=models.Filter(
-            must=[
-                models.FieldCondition(
-                    key="tenant_id",
-                    match=models.MatchAny(any=tenant_ids),
-                )
-            ]
-        ),
+        query_filter=models.Filter(must=[_tenant_condition(tenant_ids)]),
         with_payload=True,
     )
 
@@ -287,11 +299,7 @@ def count_points(
 
     conditions = []
     if tenant_ids:
-        conditions.append(
-            models.FieldCondition(
-                key="tenant_id", match=models.MatchAny(any=tenant_ids)
-            )
-        )
+        conditions.append(_tenant_condition(tenant_ids))
     if field is not None:
         conditions.append(
             models.FieldCondition(key=field, match=models.MatchValue(value=value))
@@ -302,3 +310,60 @@ def count_points(
         count_filter=models.Filter(must=conditions) if conditions else None,
         exact=True,
     ).count
+
+
+def delete_by_tenant(tenant_id: str) -> int:
+    """Delete every point belonging to ``tenant_id``. Returns how many.
+
+    **Refuses the public tenant, unconditionally.** One wrong argument
+    here would wipe the shared corpus, and the only way back is a full
+    Colab re-ingestion - so this is a hard guard rather than a caller's
+    responsibility. An empty tenant id is refused for the same reason: it
+    is what a missing session id looks like, and it must never be treated
+    as "delete whatever matches".
+
+    The count is read before the delete because Qdrant's delete reports an
+    operation status, not a number of points removed.
+    """
+    if not tenant_id or tenant_id == PUBLIC_TENANT_ID:
+        raise ValueError(
+            f"refusing to delete points for tenant {tenant_id!r}: the shared "
+            "corpus is not deletable through this function, and an empty "
+            "tenant id is never a valid target"
+        )
+
+    deleted = count_points(tenant_ids=[tenant_id])
+    if deleted:
+        get_client().delete(
+            collection_name=settings.qdrant_collection,
+            points_selector=models.FilterSelector(
+                filter=models.Filter(must=[_tenant_condition([tenant_id])])
+            ),
+            wait=True,
+        )
+    return deleted
+
+
+def list_tenants(limit: int = 1000) -> list[str]:
+    """Every distinct ``tenant_id`` currently in the collection.
+
+    Uses Qdrant's facet aggregation (available in the pinned client) with
+    ``exact=True`` rather than scrolling every point, so the cost is a
+    single aggregate request instead of one pass over the corpus. Only
+    ``scripts/cleanup_orphaned_uploads.py`` needs this; ``limit`` caps how
+    many distinct tenants come back, and hitting that cap is logged rather
+    than silently truncating a cleanup run's view of what exists.
+    """
+    hits = get_client().facet(
+        collection_name=settings.qdrant_collection,
+        key=TENANT_FIELD,
+        limit=limit,
+        exact=True,
+    ).hits
+    if len(hits) >= limit:
+        logger.warning(
+            "list_tenants() hit its limit of %d distinct tenants; there may be "
+            "more that this call cannot see - re-run with a higher limit",
+            limit,
+        )
+    return [hit.value for hit in hits]

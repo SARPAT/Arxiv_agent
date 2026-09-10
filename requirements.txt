@@ -14,6 +14,14 @@ onnxruntime==1.29.0
 tokenizers==0.23.2
 huggingface-hub==1.29.0
 
+# Checkpoint 7: PDF text extraction for user uploads. pypdf is NOT a
+# dependency of langchain-community (checked: it is an optional extra of
+# that package's PDF loaders, and was not installed here), so this is a
+# real new dependency rather than a pin on something already present.
+# Deliberately not pdfplumber or unstructured, and never PyMuPDF - that
+# one is AGPL-licensed and must not enter this repo.
+pypdf==6.17.0
+
 arxiv==2.4.1
 numpy==2.4.6
 pymupdf==1.28.2
@@ -28,6 +36,11 @@ qdrant-client==1.16.1
 langchain-nvidia-ai-endpoints==1.4.3
 python-dotenv==1.2.3
 fastapi==0.141.1
+# Required by FastAPI to parse the multipart form POST /upload accepts;
+# without it the route raises at startup. It arrives transitively via
+# gradio today, which is exactly why it is pinned explicitly - the backend
+# must not depend on a frontend package to boot.
+python-multipart==0.0.32
 uvicorn==0.52.4
 gradio==6.26.0
 spaces==0.51.3
