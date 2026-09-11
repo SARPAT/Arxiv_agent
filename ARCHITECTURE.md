@@ -115,7 +115,14 @@ all-at-once.
 and Qdrant client are loaded, on a background thread so a cold-start
 model download cannot stall the health check. Upload headroom is the
 instance limit minus that figure, and no local measurement can substitute
-for it — a sandbox's baseline is not Render's.
+for it — a sandbox's baseline is not Render's. Measured on Render: **282.9 MB**.
+
+`process_upload()` logs one INFO line per request with wall-clock seconds
+per stage — `extract`, `delete`, `chunk`, `embed`, `upsert` — emitted on
+the failure path as well as the success one. On a failure the stages that
+never completed are simply absent, which is what names the one it stopped
+inside. `UPLOAD_TIMEOUT_SECONDS` (default 60) bounds the whole thing and
+is env-tunable for the same reason `EMBED_BATCH_SIZE` is.
 
 ---
 

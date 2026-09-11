@@ -21,6 +21,13 @@ huggingface-hub==1.29.0
 # Deliberately not pdfplumber or unstructured, and never PyMuPDF - that
 # one is AGPL-licensed and must not enter this repo.
 pypdf==6.17.0
+# pypdf's "fonts" extra. Without it, _cmap.py logs a warning per CFF
+# Type1 font and returns early, skipping that font's encoding table -
+# which is what the repeated pypdf._cmap lines in Render's logs are. Note
+# the direction: missing fontTools makes pypdf do LESS work, not more, so
+# this is an extraction-QUALITY fix (unresolved encodings come back as
+# garbled text, which then gets embedded and retrieved), not a speed one.
+fonttools==4.65.0
 
 arxiv==2.4.1
 numpy==2.4.6
