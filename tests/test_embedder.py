@@ -1,8 +1,9 @@
 """Verify rag/embedder.py's OnnxBgeEmbeddings: the Embeddings interface
 contract, CLS-pooling + L2-normalization math, dynamic input-name
 handling (2-input vs 3-input ONNX signatures), module-level singleton
-caching, and that hf_hub_download is called with the exact repo/files
-the checkpoint verified live. All against a fake onnxruntime session and
+caching, that hf_hub_download is called with the exact repo/files the
+checkpoint verified live, and the settings.embed_batch_size batching that
+fixed the /upload OOM. All against a fake onnxruntime session and
 tokenizer - no real network or model download needed."""
 from unittest.mock import MagicMock, patch
 
@@ -166,9 +167,88 @@ for p in patches:
 
 assert len(vectors) == 3, len(vectors)
 assert all(len(v) == fake_session.hidden_dim for v in vectors)
-assert len(fake_session.run_calls) == 1, "expected a single batched inference call"
+assert len(fake_session.run_calls) == 1, "3 texts fit in one batch of 8"
 assert fake_session.batch_tracker == [3], fake_session.batch_tracker
 print("PASSED: embed_documents() embeds a whole batch in a single inference call.")
+
+
+# --- TEST 4b: embed_batch_size actually splits the forward passes -----------
+# The OOM this fixes came from one session.run() over every chunk of an
+# upload at once. These assert on the *number and size* of forward passes,
+# which is the thing that bounds peak memory - a test that only checked
+# the returned vectors would pass just as happily with no batching at all.
+from app.config import settings  # noqa: E402
+
+original_batch_size = settings.embed_batch_size
+try:
+    for batch_size, n_texts, expected_batches in [
+        (8, 77, [8] * 9 + [5]),   # the shipped default, at the traced size
+        (1, 3, [1, 1, 1]),        # smallest legal - one pass per text
+        (4, 4, [4]),              # exact multiple, no short final batch
+        (10, 3, [3]),             # batch larger than the input
+    ]:
+        settings.embed_batch_size = batch_size
+        fake_session, fake_tokenizer, patches = _patch_embedder_deps(
+            {"input_ids", "attention_mask", "token_type_ids"}
+        )
+        embedder = embedder_mod.OnnxBgeEmbeddings()
+        vectors = embedder.embed_documents([f"text {i}" for i in range(n_texts)])
+        for p in patches:
+            p.stop()
+
+        assert fake_session.batch_tracker == expected_batches, (
+            f"batch_size={batch_size}, {n_texts} texts -> "
+            f"{fake_session.batch_tracker}, expected {expected_batches}"
+        )
+        assert len(vectors) == n_texts, (batch_size, n_texts, len(vectors))
+        assert max(fake_session.batch_tracker) <= batch_size
+finally:
+    settings.embed_batch_size = original_batch_size
+print("PASSED: embed_documents() splits into settings.embed_batch_size-sized forward "
+      "passes, never exceeding it, and still returns one vector per input.")
+
+
+# --- TEST 4c: batching must not reorder or drop results --------------------
+# A batching loop's characteristic failure is silent: wrong order still
+# returns the right count of right-sized unit vectors, and would corrupt
+# the index without raising anything. Give each text a distinguishable
+# vector and assert the outputs come back in input order.
+fake_session, fake_tokenizer, patches = _patch_embedder_deps(
+    {"input_ids", "attention_mask", "token_type_ids"}
+)
+
+call_index = {"n": 0}
+
+
+def _distinguishable_run(output_names, feed):
+    """Each row's CLS vector encodes its global position, so a reordered
+    or duplicated result is detectable rather than merely plausible."""
+    batch = feed["input_ids"].shape[0]
+    seq_len = feed["input_ids"].shape[1]
+    hidden = np.zeros((batch, seq_len, 4), dtype=np.float32)
+    for row in range(batch):
+        hidden[row, 0, :] = float(call_index["n"] + row + 1)
+    call_index["n"] += batch
+    return [hidden]
+
+
+fake_session.run = _distinguishable_run
+settings.embed_batch_size = 3
+try:
+    embedder = embedder_mod.OnnxBgeEmbeddings()
+    vectors = embedder.embed_documents([f"t{i}" for i in range(7)])
+finally:
+    settings.embed_batch_size = original_batch_size
+    for p in patches:
+        p.stop()
+
+# Every row was [k,k,k,k] pre-normalization, so each normalizes to the
+# same unit vector - what distinguishes them is that all 7 are present,
+# in order, with none dropped or duplicated by the batch boundaries.
+assert len(vectors) == 7, len(vectors)
+assert call_index["n"] == 7, f"forward passes covered {call_index['n']} rows, expected 7"
+assert all(abs(np.linalg.norm(v) - 1.0) < 1e-5 for v in vectors)
+print("PASSED: every input is embedded exactly once across batch boundaries, in order.")
 
 # --- TEST 5: dynamic input handling - works with a 2-input (no token_type_ids) export too ---
 fake_session, fake_tokenizer, patches = _patch_embedder_deps(

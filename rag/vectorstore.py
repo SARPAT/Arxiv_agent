@@ -36,6 +36,7 @@ Layout, all locked decisions:
 
 import hashlib
 import logging
+import threading
 import uuid
 
 from qdrant_client import QdrantClient, models
@@ -83,6 +84,7 @@ INDEXED_PAYLOAD_FIELDS = (TENANT_FIELD, *FILTERABLE_PAYLOAD_FIELDS)
 _POINT_ID_NAMESPACE = uuid.UUID("6f9619ff-8b86-d011-b42d-00cf4fc964ff")
 
 _client: QdrantClient | None = None
+_client_lock = threading.Lock()
 _embedding_dim: int | None = None
 
 
@@ -96,7 +98,15 @@ def get_client() -> QdrantClient:
     """
     global _client
     if _client is None:
-        _client = QdrantClient(url=settings.qdrant_url, api_key=settings.qdrant_api_key)
+        with _client_lock:
+            # Double-checked for the same reason rag/embedder.py's
+            # get_embedder() is: uvicorn's threadpool plus app/api.py's
+            # startup warm-up mean two threads can reach this at once,
+            # and a second client is a second connection pool.
+            if _client is None:
+                _client = QdrantClient(
+                    url=settings.qdrant_url, api_key=settings.qdrant_api_key
+                )
     return _client
 
 

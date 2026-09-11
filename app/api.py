@@ -13,9 +13,12 @@ upload size cap so neither is hardcoded on that side.
 import asyncio
 import json
 import logging
+import threading
 import uuid
 from collections.abc import Iterator
+from contextlib import asynccontextmanager
 
+import psutil
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
@@ -25,7 +28,9 @@ from pydantic import BaseModel
 from app.config import settings
 from app.session import append_turn, get_history, get_upload
 from ingestion.upload import UploadRejected, process_upload
+from rag.embedder import get_embedder
 from rag.pipeline import REAL_PAPER_TITLES, run_pipeline_stream
+from rag.vectorstore import get_client
 
 # uvicorn configures its own "uvicorn"/"uvicorn.access"/"uvicorn.error"
 # loggers but never touches the root logger, so without this, every
@@ -41,7 +46,57 @@ logging.basicConfig(
     level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s"
 )
 
-app = FastAPI()
+# Every other module in app/ and rag/ defines this; this one did not, and
+# nothing noticed because the only references sat in branches no test
+# reached - the upload timeout and server-error paths, which raised
+# NameError instead of returning their 504/500. Found while adding the
+# startup log below, which is the first thing here to log on a path that
+# actually runs.
+logger = logging.getLogger(__name__)
+
+def _warm_up_and_log_rss() -> None:
+    """Load the embedder and Qdrant client, then log this process's
+    resident memory once, with everything the request path needs already
+    in it.
+
+    That number is the point. This instance OOMs at 512MB, and the
+    headroom an upload actually has is (512 - this), which no local
+    measurement can supply - a sandbox's baseline is not Render's. Logging
+    it once at startup means the real figure is in the Events/Logs tab
+    next to any future OOM rather than being re-estimated after one.
+
+    Runs on a background thread so it cannot delay the health check:
+    free-tier disk is ephemeral, so a cold start re-downloads the ONNX
+    model, and blocking startup on that download is how a deploy fails its
+    health check and rolls back. As a side effect the model is usually
+    warm before the first real request instead of that request paying for
+    it. Every failure is swallowed and logged - this is instrumentation,
+    and instrumentation must never be the reason a service won't boot.
+    """
+    try:
+        get_embedder()
+        get_client()
+        rss_mb = psutil.Process().memory_info().rss / 1024 / 1024
+        logger.info(
+            "startup warm-up complete: RSS %.1f MB with embedder + Qdrant "
+            "client loaded (EMBED_BATCH_SIZE=%d). Upload headroom is what "
+            "is left of this instance's memory limit above this figure.",
+            rss_mb,
+            settings.embed_batch_size,
+        )
+    except Exception:
+        logger.exception("startup warm-up failed (service still serving)")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    threading.Thread(
+        target=_warm_up_and_log_rss, name="warm-up", daemon=True
+    ).start()
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
 
 # The frontend (a Hugging Face Space) runs on a different origin than this
 # API, so browser requests to /chat need CORS allowed explicitly. The

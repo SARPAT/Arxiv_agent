@@ -23,3 +23,9 @@ services:
         value: arxiv_agent
       - key: CORS_ALLOWED_ORIGIN
         sync: false
+      # Not a secret, so it ships with its default - the point of it
+      # being here is that it shows up in the dashboard as an editable
+      # value. Lower it there if an upload OOMs the instance; it takes
+      # effect on restart, with no redeploy and no code change.
+      - key: EMBED_BATCH_SIZE
+        value: 8

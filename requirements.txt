@@ -47,4 +47,8 @@ spaces==0.51.3
 pydantic-settings==2.15.0
 httpx==0.28.1
 redis==8.1.0
+# Reads this process's own RSS for the startup memory log in app/api.py.
+# Added when an upload OOM-killed a 512MB instance and there was no
+# recorded figure for what the process uses at rest to compare against.
+psutil==7.2.2
 fakeredis==2.37.1
