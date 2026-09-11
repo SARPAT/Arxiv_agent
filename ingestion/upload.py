@@ -188,6 +188,23 @@ def process_upload(file_bytes: bytes, filename: str, session_id: str) -> dict:
         },
     )
     chunks = build_splitter().split_documents([document])
+
+    # The whole-document text is dead weight from here on - the chunks
+    # carry their own copies - and what follows (embedding) is the most
+    # memory-hungry step in this function, so it is the worst possible
+    # moment to still be holding it. Dropping both references frees the
+    # string, since the chunk Documents hold substrings, not views of it.
+    #
+    # ``file_bytes`` deliberately is NOT dropped here: this frame's is not
+    # the only reference - app/api.py's handler and the threadpool call
+    # holding it both outlive this function, so a ``del`` here would free
+    # nothing while reading as though it did. Freeing it for real means
+    # handing this function a file handle instead of bytes; at 1.7MB
+    # measured against a 483MB embedding peak, that signature change has
+    # not earned itself yet.
+    char_count = len(text)
+    del text, document
+
     chunk_count = upsert_chunks(chunks, tenant_id=session_id)
     set_upload(session_id, title, chunk_count)
 
@@ -197,7 +214,7 @@ def process_upload(file_bytes: bytes, filename: str, session_id: str) -> dict:
         session_id,
         title,
         chunk_count,
-        len(text),
+        char_count,
         replaced,
     )
-    return {"filename": title, "chunk_count": chunk_count, "char_count": len(text)}
+    return {"filename": title, "chunk_count": chunk_count, "char_count": char_count}

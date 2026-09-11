@@ -41,12 +41,15 @@ actually about, rather than also changing retrieval semantics.
 """
 
 import hashlib
+import threading
 
 import numpy as np
 import onnxruntime as ort
 from huggingface_hub import hf_hub_download
 from langchain_core.embeddings import Embeddings
 from tokenizers import Tokenizer
+
+from app.config import settings
 
 _HF_REPO = "Xenova/bge-small-en-v1.5"
 _ONNX_SUBPATH = "onnx/model_quantized.onnx"
@@ -124,7 +127,9 @@ class OnnxBgeEmbeddings(Embeddings):
         # particular export follows.
         self._input_names = {inp.name for inp in self._session.get_inputs()}
 
-    def _embed(self, texts: list[str]) -> list[list[float]]:
+    def _embed_batch(self, texts: list[str]) -> list[list[float]]:
+        """One forward pass over one batch. Callers go through
+        ``_embed()``, which bounds how large ``texts`` gets here."""
         encodings = self._tokenizer.encode_batch(texts)
 
         available_inputs = {
@@ -154,6 +159,35 @@ class OnnxBgeEmbeddings(Embeddings):
         normalized = cls_embeddings / norms
         return normalized.tolist()
 
+    def _embed(self, texts: list[str]) -> list[list[float]]:
+        """Embed ``texts`` in batches of ``settings.embed_batch_size``,
+        returning one vector per input, in input order.
+
+        **This batching is a memory bound, not a throughput tweak.** A
+        forward pass allocates attention scores of shape
+        ``(batch, heads, seq_len, seq_len)``, so its peak memory grows
+        with the batch size and with the *square* of the longest sequence
+        in that batch. Passing a whole document at once therefore scales
+        with the size of whatever the user uploaded, which is exactly how
+        a 77-chunk upload came to peak at +483MB RSS over baseline and
+        OOM a 512MB instance. Batching makes that peak a function of a
+        configured constant instead - the same upload measured +198MB at
+        batch 8.
+
+        A second, quieter benefit: ``enable_padding()`` pads each
+        ``encode_batch`` call to the longest sequence *in that call*, so
+        smaller batches also mean less padding waste - one 512-token
+        chunk no longer inflates every other chunk in the document to 512.
+
+        Read from ``settings`` per call rather than captured at import,
+        so ``EMBED_BATCH_SIZE`` can be changed on a running instance.
+        """
+        batch_size = settings.embed_batch_size
+        vectors: list[list[float]] = []
+        for start in range(0, len(texts), batch_size):
+            vectors.extend(self._embed_batch(texts[start : start + batch_size]))
+        return vectors
+
     def embed_documents(self, texts: list[str]) -> list[list[float]]:
         return self._embed(texts)
 
@@ -166,6 +200,7 @@ class OnnxBgeEmbeddings(Embeddings):
 # session and tokenizer from disk (downloading them on first use) is a
 # one-time cost, not something to repeat per call or per request.
 _embedder: OnnxBgeEmbeddings | None = None
+_embedder_lock = threading.Lock()
 
 
 def get_embedder() -> OnnxBgeEmbeddings:
@@ -176,8 +211,22 @@ def get_embedder() -> OnnxBgeEmbeddings:
     exactly one embedding implementation in this codebase - the drift
     Checkpoint 4e found (``ingestion/build_index.py`` had its own
     disconnected embedding logic) can't recur by construction.
+
+    The lock makes "exactly one" true under concurrency too. A bare
+    check-then-assign lets two threads that both find ``None`` each build
+    their own ``OnnxBgeEmbeddings``, and one of them wins the global while
+    the other stays alive for as long as its caller holds it - two ONNX
+    sessions resident at once on an instance that OOMs at 512MB. uvicorn
+    runs sync endpoints in a threadpool, and the startup warm-up in
+    ``app/api.py`` adds another thread that can race a first request, so
+    this is reachable rather than theoretical.
     """
     global _embedder
     if _embedder is None:
-        _embedder = OnnxBgeEmbeddings()
+        with _embedder_lock:
+            # Re-checked inside the lock: the thread that waited here
+            # while another built it must return that one, not build a
+            # second.
+            if _embedder is None:
+                _embedder = OnnxBgeEmbeddings()
     return _embedder

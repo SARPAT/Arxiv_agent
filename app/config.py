@@ -9,6 +9,7 @@ defined here instead, loaded once from the environment (and a local
 module rather than defining their own constants.
 """
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -70,6 +71,28 @@ class Settings(BaseSettings):
     max_upload_bytes: int = 10 * 1024 * 1024
     min_extracted_chars: int = 100
     upload_timeout_seconds: int = 60
+
+    # How many chunks go through one ONNX forward pass.
+    #
+    # This is the setting that fixed the /upload OOM. rag/embedder.py used
+    # to run every chunk of an upload through a single session.run() call:
+    # a traced 77-chunk upload peaked at +483MB RSS over baseline at
+    # bge-small's real 12-layer depth, on a 512MB instance. The same work
+    # batched at 8 peaked at +198MB. Forward-pass memory scales with
+    # batch x heads x seq_len^2 for the attention scores, so the batch
+    # size is the one lever that bounds it independently of how large the
+    # uploaded document is.
+    #
+    # Env-tunable (EMBED_BATCH_SIZE) rather than a module constant
+    # specifically so it can be lowered on a live instance from Render's
+    # dashboard, without a redeploy, if 8 still proves too generous under
+    # real concurrent load.
+    #
+    # ge=1 is not decoration: 0 would make range(0, n, 0) raise, and a
+    # negative value would produce an empty range - embedding nothing,
+    # returning no vectors, and silently writing an empty document to
+    # Qdrant rather than failing.
+    embed_batch_size: int = Field(default=8, ge=1)
 
     retrieval_k: int = 4
     max_context_chars: int = 2500

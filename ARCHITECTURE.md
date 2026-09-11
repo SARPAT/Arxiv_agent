@@ -94,6 +94,29 @@ a pathological PDF returns a 504 instead of occupying a request slot. The
 pipeline is a standalone function precisely so moving it to a queue later
 changes what calls it, not the logic.
 
+**Embedding is batched, and that is a memory bound rather than a
+throughput tweak.** A forward pass allocates attention scores of shape
+`(batch, heads, seq_len, seq_len)`, so its peak scales with the batch
+size and the *square* of the longest sequence in it. Embedding a whole
+document at once therefore scaled with whatever the user uploaded: a
+traced 77-chunk upload peaked at **+533MB** over baseline on a 512MB
+instance and OOM-killed it. `EMBED_BATCH_SIZE` (default 8) makes that
+peak a function of a configured constant instead — the same upload
+measured **+110MB**, ~4.8x lower, and slightly faster. It is an env var,
+not a constant, so it can be lowered on a live instance without a
+redeploy.
+
+Batching is output-invariant: padding is masked, so each sequence's
+result does not depend on what else shares its batch. Verified
+bit-identical (`0.00e+00` max difference) across batch sizes of 1, 8 and
+all-at-once.
+
+`app/api.py` logs this process's RSS once at startup, after the embedder
+and Qdrant client are loaded, on a background thread so a cold-start
+model download cannot stall the health check. Upload headroom is the
+instance limit minus that figure, and no local measurement can substitute
+for it — a sandbox's baseline is not Render's.
+
 ---
 
 ## Caching
