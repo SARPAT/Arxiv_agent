@@ -153,6 +153,12 @@ The cost is orphaned points when a session never returns, which
 `scripts/cleanup_orphaned_uploads.py` reclaims — dry-run by default,
 `--delete` to act, `"public"` excluded unconditionally.
 
+`GET /corpus/info` gives the frontend the corpus's paper titles and the
+upload size cap for its welcome message and upload widget, both derived
+live from `rag.pipeline.REAL_PAPER_TITLES` (built off `TARGET_PAPERS`) and
+`settings.max_upload_bytes` on every call - never a separate hardcoded
+count or size the frontend could drift out of sync with.
+
 ---
 
 ## Generation
