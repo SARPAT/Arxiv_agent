@@ -158,6 +158,41 @@ def upload_fn(file_path: str | None, session_id: str):
     )
 
 
+def corpus_info_fn():
+    """demo.load handler: fetch ``/corpus/info`` once and use it for both
+    the chat panel's opening message and the upload widget's size-limit
+    label - one fetch, two renderings of the same response, rather than
+    two hardcoded numbers/lists that could quietly drift apart.
+
+    Falls back to a generic welcome with no paper list on a cold or
+    unreachable backend, matching ``upload_status_fn``'s own try/except
+    pattern below - this runs on every page load exactly like that one
+    does, so a stack trace here would greet every new visitor with one.
+    """
+    try:
+        response = httpx.get(f"{BACKEND_URL}/corpus/info", timeout=30)
+        response.raise_for_status()
+        info = response.json()
+        papers, max_mb = info["papers"], info["max_upload_mb"]
+    except (httpx.HTTPError, json.JSONDecodeError, KeyError):
+        welcome = (
+            "**Welcome to Arxiv Agent.** Ask a question below.\n\n"
+            f"_Couldn't load the corpus list just now - {WAKE_UP_NOTICE}. "
+            "Feel free to ask anyway; it may just need a moment._"
+        )
+        return [{"role": "assistant", "content": welcome}], ""
+
+    paper_list = "\n".join(f"- {title}" for title in papers)
+    welcome = (
+        "**Welcome to Arxiv Agent.** Ask a question about any of these papers:\n\n"
+        f"{paper_list}\n\n"
+        f"You can also upload your own PDF (up to {max_mb:g} MB) and ask "
+        "about it instead.\n\n"
+        f"_Heads up: {WAKE_UP_NOTICE}._"
+    )
+    return [{"role": "assistant", "content": welcome}], f"Max {max_mb:g} MB"
+
+
 def upload_status_fn(session_id: str) -> str:
     """Restore the document indicator on page load.
 
@@ -204,6 +239,10 @@ with gr.Blocks(title="Arxiv Agent") as demo:
             file_count="single",
             type="filepath",
         )
+        # Populated from the same /corpus/info fetch as the chat welcome
+        # message below, not a second hardcoded "10 MB" string - if
+        # MAX_UPLOAD_BYTES ever changes, this changes with it.
+        upload_limit = gr.Markdown()
         upload_status = gr.Markdown()
 
     msg.submit(
@@ -215,6 +254,11 @@ with gr.Blocks(title="Arxiv Agent") as demo:
     # change fires on both a new file and a cleared one; upload_fn returns
     # an empty status for the cleared case rather than erroring on None.
     upload.change(upload_fn, inputs=[upload, session_state], outputs=upload_status)
+
+    # The welcome message and the upload size label both come from this
+    # one load-time fetch - see corpus_info_fn()'s own docstring for why
+    # that's one call rather than two.
+    demo.load(corpus_info_fn, outputs=[chatbot, upload_limit])
 
     # A session's uploaded document outlives this page, so the indicator is
     # restored from the backend on load rather than assumed absent.

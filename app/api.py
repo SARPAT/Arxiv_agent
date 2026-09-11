@@ -6,6 +6,8 @@ response. ``POST /upload`` (Checkpoint 7) ingests one PDF into the
 uploading session's own Qdrant tenant, and ``GET /upload/status`` reports
 whether a session has one - the frontend needs that to show an accurate
 indicator after a page refresh, when its own in-memory state is gone.
+``GET /corpus/info`` gives the frontend the corpus's paper titles and the
+upload size cap so neither is hardcoded on that side.
 """
 
 import asyncio
@@ -23,7 +25,7 @@ from pydantic import BaseModel
 from app.config import settings
 from app.session import append_turn, get_history, get_upload
 from ingestion.upload import UploadRejected, process_upload
-from rag.pipeline import run_pipeline_stream
+from rag.pipeline import REAL_PAPER_TITLES, run_pipeline_stream
 
 # uvicorn configures its own "uvicorn"/"uvicorn.access"/"uvicorn.error"
 # loggers but never touches the root logger, so without this, every
@@ -176,6 +178,28 @@ async def upload(
         ) from exc
 
     return {**summary, "status": "ok"}
+
+
+@app.get("/corpus/info")
+def corpus_info() -> dict:
+    """The corpus's paper titles and the upload size cap, for the
+    frontend's welcome message and upload widget - neither hardcoded on
+    that side, both read from here so they can never drift from what the
+    backend actually has and actually enforces.
+
+    ``papers`` is ``rag.pipeline.REAL_PAPER_TITLES``, itself derived from
+    ``ingestion.build_index.TARGET_PAPERS`` - the same mapping
+    ``retrieved_paper_titles()`` resolves a retrieved chunk's title
+    through, so this list and what a real answer can cite are the same
+    list, never two. ``max_upload_mb`` is computed from
+    ``settings.max_upload_bytes`` on every call rather than cached: both
+    reads are an in-memory dict and a config field, cheap enough that
+    caching would only add a staleness risk for no measurable benefit.
+    """
+    return {
+        "papers": REAL_PAPER_TITLES,
+        "max_upload_mb": settings.max_upload_bytes / (1024 * 1024),
+    }
 
 
 @app.get("/upload/status")

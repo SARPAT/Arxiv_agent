@@ -17,9 +17,9 @@ time.
 
 ## What's here and what verified it landed correctly
 
-Eight modules, each mocking the layer(s) it needs (a `MagicMock` Qdrant
-client, `fakeredis`, a stub embedder/generation call) and none reaching
-the network:
+Nine modules, each mocking the layer(s) it needs (a `MagicMock` Qdrant
+client, `fakeredis`, a stub embedder/generation call, a faked `httpx`
+response) and none reaching the network:
 
 | Module | Covers |
 |---|---|
@@ -31,8 +31,9 @@ the network:
 | `test_embedder` | `rag/embedder.py`'s ONNX pooling/normalization math and singleton caching, against a fake `onnxruntime` session |
 | `test_plain_overview_chunks` | The synthetic `plain_overview` chunks' exact text and metadata |
 | `test_ui_error` | `ui/app.py`'s `chat_fn()` handling an SSE `error` event without hanging |
+| `test_corpus_info` | `GET /corpus/info` deriving papers/`max_upload_mb` dynamically (not hardcoded 7 / 10 MB), and the frontend's welcome message + upload-size label agreeing off one fetch, falling back cleanly when the backend is cold |
 
-Run right now, on this branch, all eight pass — see each module's own
+Run right now, on this branch, all nine pass — see each module's own
 docstring for exactly what it checks. `test_checkpoint7_upload`'s leak
 test was additionally confirmed to *fail* when the fix it tests is
 reverted, not just observed to pass; see its module docstring.
