@@ -29,3 +29,9 @@ services:
       # effect on restart, with no redeploy and no code change.
       - key: EMBED_BATCH_SIZE
         value: 8
+      # Seconds one /upload may occupy a worker before returning 504.
+      # Same rationale as EMBED_BATCH_SIZE: not a secret, ships with its
+      # default, editable in the dashboard so a slow-PDF timeout can be
+      # raised (or lowered) on a running instance without a redeploy.
+      - key: UPLOAD_TIMEOUT_SECONDS
+        value: 60

@@ -37,6 +37,7 @@ Layout, all locked decisions:
 import hashlib
 import logging
 import threading
+import time
 import uuid
 
 from qdrant_client import QdrantClient, models
@@ -218,7 +219,9 @@ def point_id(tenant_id: str, metadata: dict, text: str) -> str:
     return str(uuid.uuid5(_POINT_ID_NAMESPACE, name))
 
 
-def upsert_chunks(chunks: list, tenant_id: str) -> int:
+def upsert_chunks(
+    chunks: list, tenant_id: str, timings: dict[str, float] | None = None
+) -> int:
     """Embed and upsert ``chunks`` under ``tenant_id``. Returns the count.
 
     ``chunks`` are langchain ``Document``s (what the ingestion pipeline
@@ -226,14 +229,28 @@ def upsert_chunks(chunks: list, tenant_id: str) -> int:
     payload verbatim alongside the chunk text and the tenant id - losing
     one silently would break, for example, ``eval/run_eval.py``'s
     ``paper_key`` matching.
+
+    ``timings``, when given, accumulates seconds spent under ``"embed"``
+    and ``"upsert"``. Those two are only separable in here - from a
+    caller's side they are one opaque call - and telling them apart is the
+    whole point when an upload is timing out: local CPU work and a network
+    round trip to Qdrant want completely different fixes. Optional and
+    additive so existing callers (``ingestion/build_index.py``) are
+    untouched.
     """
     client = get_client()
     embedder = get_embedder()
     total = 0
 
+    def _record(stage: str, seconds: float) -> None:
+        if timings is not None:
+            timings[stage] = timings.get(stage, 0.0) + seconds
+
     for start in range(0, len(chunks), UPSERT_BATCH_SIZE):
         batch = chunks[start : start + UPSERT_BATCH_SIZE]
+        t0 = time.perf_counter()
         vectors = embedder.embed_documents([chunk.page_content for chunk in batch])
+        _record("embed", time.perf_counter() - t0)
 
         points = []
         for chunk, vector in zip(batch, vectors):
@@ -248,7 +265,9 @@ def upsert_chunks(chunks: list, tenant_id: str) -> int:
                 )
             )
 
+        t0 = time.perf_counter()
         client.upsert(collection_name=settings.qdrant_collection, points=points)
+        _record("upsert", time.perf_counter() - t0)
         total += len(points)
 
     return total

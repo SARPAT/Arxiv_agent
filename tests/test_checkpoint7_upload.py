@@ -359,4 +359,60 @@ assert initial() != initial(), "each page load must mint a distinct session id"
 ok("each browser session mints its own id, so uploads cannot cross users")
 
 
+# --- 14. Per-stage timings are logged, on success AND on failure --------
+# The point of these is diagnosing a request that hit the upload timeout,
+# so the failure path matters more than the success one: whichever stage
+# is absent from the line is the stage it was still inside.
+import logging
+
+client = make_client()
+reset(client)
+
+
+def captured_upload(embedder, session_id):
+    records = []
+
+    class _Capture(logging.Handler):
+        def emit(self, record):
+            records.append(record.getMessage())
+
+    handler = _Capture()
+    upload_logger = logging.getLogger("ingestion.upload")
+    upload_logger.addHandler(handler)
+    upload_logger.setLevel(logging.INFO)
+    try:
+        with patch.object(vectorstore, "get_embedder", embedder):
+            try:
+                upload.process_upload(REAL_PDF, "timed.pdf", session_id)
+            except RuntimeError:
+                pass
+    finally:
+        upload_logger.removeHandler(handler)
+    return [m for m in records if m.startswith("upload timings")]
+
+
+lines = captured_upload(StubEmbedder, "session-timed")
+assert len(lines) == 1, lines
+assert "[ok]" in lines[0], lines[0]
+for stage in ("extract", "delete", "chunk", "embed", "upsert"):
+    assert f"{stage}=" in lines[0], f"{stage} missing from {lines[0]!r}"
+assert "total=" in lines[0]
+ok("process_upload() logs one timing line per stage on the success path")
+
+exploding = MagicMock()
+exploding.embed_documents.side_effect = RuntimeError("embed exploded")
+lines = captured_upload(lambda: exploding, "session-boom")
+assert len(lines) == 1, lines
+assert "[failed]" in lines[0], lines[0]
+# extract/delete/chunk completed; embed and upsert did not - and their
+# absence is what identifies where it stopped.
+for stage in ("extract", "delete", "chunk"):
+    assert f"{stage}=" in lines[0], f"{stage} missing from {lines[0]!r}"
+for stage in ("embed", "upsert"):
+    assert f"{stage}=" not in lines[0], (
+        f"{stage} must be absent - it never completed: {lines[0]!r}"
+    )
+ok("a failed upload still logs its partial timings, naming the stage it died in")
+
+
 print(f"\nALL {len(PASSED)} CHECKPOINT 7 TESTS PASSED")

@@ -31,6 +31,8 @@ instead of re-deriving which failure means what.
 import io
 import logging
 import re
+import time
+from contextlib import contextmanager
 from pathlib import PurePosixPath
 
 from langchain_core.documents import Document
@@ -70,6 +72,21 @@ _UNKNOWN_CORPUS_FIELDS = {
     "Authors": "",
     "Summary": "",
 }
+
+
+@contextmanager
+def _timed(stage: str, timings: dict[str, float]):
+    """Record wall-clock seconds for one stage into ``timings``.
+
+    Wall clock, not CPU time, deliberately: what matters here is what the
+    request's own timeout measures, which includes time blocked on
+    Qdrant's network round trips as much as time spent computing.
+    """
+    start = time.perf_counter()
+    try:
+        yield
+    finally:
+        timings[stage] = timings.get(stage, 0.0) + (time.perf_counter() - start)
 
 
 class UploadRejected(Exception):
@@ -150,6 +167,26 @@ def _validate(file_bytes: bytes, session_id: str) -> None:
         raise NotAPdf("Only PDF files can be uploaded.")
 
 
+def _log_timings(session_id: str, timings: dict[str, float], outcome: str) -> None:
+    """Emit the one timing line. ``outcome`` distinguishes a completed run
+    from one that died partway, because the partial breakdown of a failed
+    run is the more useful of the two - it names the stage that was still
+    running when everything stopped."""
+    total = sum(timings.values())
+    breakdown = " ".join(
+        f"{stage}={timings[stage]:.2f}s"
+        for stage in ("extract", "delete", "chunk", "embed", "upsert")
+        if stage in timings
+    )
+    logger.info(
+        "upload timings [%s] session=%s total=%.2fs %s",
+        outcome,
+        session_id,
+        total,
+        breakdown,
+    )
+
+
 def process_upload(file_bytes: bytes, filename: str, session_id: str) -> dict:
     """Ingest one PDF for one session. Returns a summary for the response.
 
@@ -159,7 +196,31 @@ def process_upload(file_bytes: bytes, filename: str, session_id: str) -> dict:
     """
     _validate(file_bytes, session_id)
 
-    text = extract_text(file_bytes)
+    # Every stage below is timed, and the totals go out as one INFO line at
+    # the end. An upload that hits the request timeout otherwise tells you
+    # only that 60 seconds went somewhere; these say where. One line rather
+    # than one per stage so a single grep in Render's logs gets the whole
+    # breakdown for a request, including for the run that timed out.
+    timings: dict[str, float] = {}
+
+    try:
+        return _ingest(file_bytes, filename, session_id, timings)
+    except Exception:
+        # A failed or abandoned run is the one whose breakdown matters
+        # most: whichever stage is missing from the line is the one it was
+        # still inside when it stopped.
+        _log_timings(session_id, timings, "failed")
+        raise
+
+
+def _ingest(
+    file_bytes: bytes, filename: str, session_id: str, timings: dict[str, float]
+) -> dict:
+    """The upload body proper. Split out from ``process_upload`` only so
+    that its timing line is emitted on both the success and failure paths
+    without duplicating the whole thing in a ``finally``."""
+    with _timed("extract", timings):
+        text = extract_text(file_bytes)
     if len(text) < settings.min_extracted_chars:
         # The scanned-PDF case, and the one failure a normal user will
         # actually hit. pypdf returns empty text for an image-only page
@@ -176,7 +237,8 @@ def process_upload(file_bytes: bytes, filename: str, session_id: str) -> dict:
     # marker back on. A failure at any point leaves the session searching
     # the shared corpus alone rather than a half-written tenant.
     clear_upload(session_id)
-    replaced = delete_by_tenant(session_id)
+    with _timed("delete", timings):
+        replaced = delete_by_tenant(session_id)
 
     document = Document(
         page_content=text,
@@ -187,7 +249,8 @@ def process_upload(file_bytes: bytes, filename: str, session_id: str) -> dict:
             **_UNKNOWN_CORPUS_FIELDS,
         },
     )
-    chunks = build_splitter().split_documents([document])
+    with _timed("chunk", timings):
+        chunks = build_splitter().split_documents([document])
 
     # The whole-document text is dead weight from here on - the chunks
     # carry their own copies - and what follows (embedding) is the most
@@ -205,9 +268,12 @@ def process_upload(file_bytes: bytes, filename: str, session_id: str) -> dict:
     char_count = len(text)
     del text, document
 
-    chunk_count = upsert_chunks(chunks, tenant_id=session_id)
+    # embed and upsert are interleaved inside this one call, so it reports
+    # its own split rather than being timed from out here as one blob.
+    chunk_count = upsert_chunks(chunks, tenant_id=session_id, timings=timings)
     set_upload(session_id, title, chunk_count)
 
+    _log_timings(session_id, timings, "ok")
     logger.info(
         "upload ingested for session %s: %r -> %d chunks (%d chars), "
         "replaced %d previous points",
