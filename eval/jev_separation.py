@@ -90,6 +90,11 @@ THRESHOLDS = [round(0.30 + 0.05 * i, 2) for i in range(13)]
 # The aggregator used for count_above_N.
 COUNT_THRESHOLD = 0.5
 
+# What count_above is swept over: "at least N of TOP_K chunks scored at or
+# above COUNT_THRESHOLD", N = 1..TOP_K. A count cannot be swept over
+# THRESHOLDS - see sweep().
+COUNT_CUTS = list(range(1, TOP_K + 1))
+
 _SDK_HINT = (
     "typesafe-sdk is not installed. This script is measurement-only and is "
     "deliberately NOT in requirements.txt. Install it with:\n"
@@ -376,19 +381,21 @@ def sweep(questions: list[dict], aggregator: str, noul: str) -> list[dict]:
     for q in questions:
         by_cat.setdefault(q["category"], []).append(q["aggregates"][noul][aggregator])
 
+    # count_above is a count of chunks (0..TOP_K), not a score in [0, 1],
+    # so it is swept over "at least N of TOP_K chunks cleared
+    # COUNT_THRESHOLD" rather than over THRESHOLDS. Sweeping it against
+    # 0.30-0.90 compared a count to a probability: every row collapsed to
+    # "at least 1 chunk", so all 13 came back identical and the table read
+    # as a flat result rather than as an aggregator that was never swept.
+    cuts = COUNT_CUTS if aggregator == "count_above" else THRESHOLDS
+
     rows = []
-    for threshold in THRESHOLDS:
-        cut = COUNT_THRESHOLD if aggregator == "count_above" else threshold
-        row = {"threshold": threshold}
+    for cut in cuts:
+        row = {"threshold": cut}
         for cat, values in by_cat.items():
             if not values:
                 continue
-            if aggregator == "count_above":
-                # count_above is a count, not a score: "retained" means at
-                # least one chunk cleared COUNT_THRESHOLD.
-                retained = sum(1 for v in values if v >= 1)
-            else:
-                retained = sum(1 for v in values if v >= cut)
+            retained = sum(1 for v in values if v >= cut)
             row[f"{cat}_retained"] = retained
             row[f"{cat}_total"] = len(values)
             row[f"{cat}_retained_pct"] = 100.0 * retained / len(values)
@@ -397,10 +404,10 @@ def sweep(questions: list[dict], aggregator: str, noul: str) -> list[dict]:
     return rows
 
 
-def print_sweep(rows: list[dict], title: str) -> None:
+def print_sweep(rows: list[dict], title: str, cut_label: str = "thresh") -> None:
     print(f"\n{title}")
     header = (
-        f"{'thresh':>7s} {'in_corpus kept':>15s} {'unrelated rej':>15s} "
+        f"{cut_label:>7s} {'in_corpus kept':>15s} {'unrelated rej':>15s} "
         f"{'adjacent rej':>14s}"
     )
     print(header)
@@ -410,7 +417,9 @@ def print_sweep(rows: list[dict], title: str) -> None:
         unrel = r.get("unrelated_rejected_pct")
         adj = r.get("adjacent_uncovered_rejected_pct")
         fmt = lambda v: "     -" if v is None else f"{v:5.1f}%"  # noqa: E731
-        print(f"{r['threshold']:7.2f} {fmt(kept):>15s} {fmt(unrel):>15s} {fmt(adj):>14s}")
+        cut = r["threshold"]
+        cut_s = f"{cut:7d}" if isinstance(cut, int) else f"{cut:7.2f}"
+        print(f"{cut_s} {fmt(kept):>15s} {fmt(unrel):>15s} {fmt(adj):>14s}")
 
 
 def latency_summary(pairs: list[dict]) -> dict:
@@ -501,7 +510,12 @@ def write_plot(questions: list[dict], path: Path, noul: str, stub: bool) -> bool
 
     for i, cat in enumerate(cats):
         vals = by_cat[cat]
-        jitter = [i + (hash((cat, j)) % 100) / 500 - 0.1 for j in range(len(vals))]
+        # Seeded explicitly: builtin hash() of a str is salted per process
+        # (PYTHONHASHSEED), so this drew a visibly different plot from the
+        # same JSON on every run - including every --analyze-only re-run of
+        # one finished measurement.
+        jrng = random.Random(f"jitter|{cat}|{len(vals)}")
+        jitter = [i + jrng.uniform(-0.1, 0.1) for _ in range(len(vals))]
         ax_strip.scatter(vals, jitter, alpha=0.5, s=14, label=cat)
     ax_strip.set_yticks(range(len(cats)))
     ax_strip.set_yticklabels(cats)
@@ -539,13 +553,22 @@ def analyze(result: dict, plot_path: Path) -> None:
     for noul in ("is_relevant", "contains_answer_evidence"):
         print(f"\n{'=' * 70}\nNOUL: {noul}\n{'=' * 70}")
         for aggregator in ("max", "mean", "count_above"):
+            is_count = aggregator == "count_above"
             label = (
-                f"count_above_{COUNT_THRESHOLD}"
-                if aggregator == "count_above"
-                else aggregator
+                f"count_above_{COUNT_THRESHOLD}" if is_count else aggregator
             )
             rows = sweep(questions, aggregator, noul)
-            print_sweep(rows, f"Aggregator: {label}")
+            print_sweep(
+                rows,
+                f"Aggregator: {label}"
+                + (
+                    f"  (cut = min chunks of {TOP_K} at/above "
+                    f"{COUNT_THRESHOLD})"
+                    if is_count
+                    else ""
+                ),
+                cut_label="chunks" if is_count else "thresh",
+            )
             result.setdefault("sweeps", {})[f"{noul}.{aggregator}"] = rows
 
     lat = latency_summary(pairs)
@@ -603,9 +626,24 @@ def analyze(result: dict, plot_path: Path) -> None:
 # --- Orchestration -----------------------------------------------------
 
 
+def load_golden_set() -> list[dict]:
+    """Read the golden set straight off disk, unmodified.
+
+    Deliberately NOT ``eval.run_eval.load_golden_set``, even though that
+    function is three equivalent lines: importing it executes
+    ``eval/run_eval.py``, which imports ``rag.pipeline`` -> ``app.config``,
+    whose ``Settings`` validates ``REDIS_URL`` / ``QDRANT_URL`` /
+    ``QDRANT_API_KEY`` at import time with no defaults. That made
+    ``--stub`` - whose entire point is that it touches no network and
+    needs no credentials - die on a pydantic ValidationError before it
+    read a single question.
+    """
+    with (EVAL_DIR / "golden_set.jsonl").open() as f:
+        return [json.loads(line) for line in f if line.strip()]
+
+
 def run(args) -> dict:
     sys.path.insert(0, str(EVAL_DIR.parent))
-    from eval.run_eval import load_golden_set
 
     rows = load_golden_set()
     if args.limit:
