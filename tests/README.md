@@ -17,7 +17,7 @@ time.
 
 ## What's here and what verified it landed correctly
 
-Nine modules, each mocking the layer(s) it needs (a `MagicMock` Qdrant
+Ten modules, each mocking the layer(s) it needs (a `MagicMock` Qdrant
 client, `fakeredis`, a stub embedder/generation call, a faked `httpx`
 response) and none reaching the network:
 
@@ -32,8 +32,9 @@ response) and none reaching the network:
 | `test_plain_overview_chunks` | The synthetic `plain_overview` chunks' exact text and metadata |
 | `test_ui_error` | `ui/app.py`'s `chat_fn()` handling an SSE `error` event without hanging |
 | `test_corpus_info` | `GET /corpus/info` deriving papers/`max_upload_mb` dynamically (not hardcoded 7 / 10 MB), and the frontend's welcome message + upload-size label agreeing off one fetch, falling back cleanly when the backend is cold |
+| `test_jev_separation` | Checkpoint B's offline analysis: the golden set's real category labels, the three aggregators, and **the reporting contract that every threshold row carries in-corpus retention alongside out-of-corpus rejection** — plus that the study ships nothing into requirements.txt/config/render.yaml |
 
-Run right now, on this branch, all nine pass — see each module's own
+Run right now, on this branch, all ten pass — see each module's own
 docstring for exactly what it checks. `test_checkpoint7_upload`'s leak
 test was additionally confirmed to *fail* when the fix it tests is
 reverted, not just observed to pass; see its module docstring.
