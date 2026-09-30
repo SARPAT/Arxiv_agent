@@ -193,8 +193,28 @@ read and write refreshes:
 - `:history` — the conversation, so multi-turn context survives between
   requests without the frontend holding it.
 - `:upload` — the uploaded document's filename and chunk count, which is
-  what `tenant_ids_for()` reads and what `GET /upload/status` reports so the
-  frontend's indicator survives a page refresh.
+  what retrieval's tenant scope is decided from and what `GET /upload/status`
+  reports so the frontend's indicator survives a page refresh.
+
+**Follow-ups are resolved before retrieval, not just before generation.**
+History always reached the generator, but the retriever embedded the raw
+message. So "who are the authors of this paper?", asked right after a
+question about an uploaded CacheBlend PDF, retrieved the RAG paper's
+chunks and got answered about the wrong paper.
+`rag/query_rewrite.py` now turns the message into a standalone query
+("Who are the authors of the CacheBlend paper?") from the last six
+history messages. The same call decides whether the question is *only*
+about the upload, and if so, retrieval searches that document alone
+instead of letting the corpus compete with it.
+
+It's one short model call (8s timeout, no retry, temperature 0), made
+only when there's history or an upload. The first message of a fresh
+session, and the eval harness, skip it entirely. Every failure (API
+error, timeout, output that isn't a usable query) falls back to
+searching the raw message, which is exactly the old behaviour, so the
+rewrite can improve a turn but never fail one. The answer itself is
+still generated from the user's own words plus history. Only what gets
+*searched* changes.
 
 Session-scoped uploads are a deliberate limitation, not an oversight: they
 need no account system, no per-user storage quota and no deletion story.

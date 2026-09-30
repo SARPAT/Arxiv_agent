@@ -26,7 +26,7 @@ from langchain_community.document_transformers import LongContextReorder
 from langchain_core.documents import Document
 
 from app.config import settings
-from app.session import tenant_ids_for
+from app.session import get_upload
 from ingestion.build_index import TARGET_PAPERS
 from rag.generation import (
     GENERAL_KNOWLEDGE_MARKER,
@@ -34,7 +34,9 @@ from rag.generation import (
     generate,
     generate_stream,
 )
+from rag.query_rewrite import plan_search
 from rag.retrieval import retrieve
+from rag.vectorstore import PUBLIC_TENANT_ID
 
 logger = logging.getLogger(__name__)
 
@@ -175,16 +177,24 @@ class PipelineResult:
 
 
 def retrieve_context(
-    query: str, session_id: str = ""
+    query: str,
+    session_id: str = "",
+    history: list[dict[str, str]] | None = None,
 ) -> tuple[list[Document], float]:
     """Retrieve the top ``settings.retrieval_k`` chunks for ``query``.
 
     ``session_id`` selects the tenants searched: the shared corpus alone,
-    or the corpus plus that session's uploaded document once it has one
-    (see ``app.session.tenant_ids_for``). It is threaded through
-    explicitly rather than read from a global or a context variable,
-    because this module is also called directly by the eval harness, where
-    there is no session at all.
+    or the corpus plus that session's uploaded document once it has one.
+    It is threaded through explicitly rather than read from a global or a
+    context variable, because this module is also called directly by the
+    eval harness, where there is no session at all.
+
+    What gets embedded is not always ``query`` verbatim. With ``history``
+    or an upload, ``rag.query_rewrite.plan_search`` first resolves a
+    follow-up like "who wrote this paper?" into a standalone query, and
+    can narrow the search to the uploaded document alone when the
+    question is only about it. With neither (the eval harness, or a
+    session's first message) the query is searched exactly as given.
 
     Returns ``(docs, top1_score)``. Every query proceeds to generation —
     there is no gate — so this no longer makes an abstain/proceed decision;
@@ -193,9 +203,16 @@ def retrieve_context(
     is still returned as telemetry, not as a gate input: it's reported in
     the ``done`` event and by the eval harness, but nothing branches on it.
     """
-    retrieved = retrieve(
-        query, k=settings.retrieval_k, tenant_ids=tenant_ids_for(session_id)
-    )
+    upload = get_upload(session_id)
+    plan = plan_search(query, history, upload["filename"] if upload else None)
+    if upload is None:
+        tenant_ids = [PUBLIC_TENANT_ID]
+    elif plan.upload_only:
+        tenant_ids = [session_id]
+    else:
+        tenant_ids = [PUBLIC_TENANT_ID, session_id]
+
+    retrieved = retrieve(plan.query, k=settings.retrieval_k, tenant_ids=tenant_ids)
     docs = [doc for doc, _score in retrieved]
     top1_score = retrieved[0][1]
     return docs, top1_score
@@ -212,7 +229,7 @@ def run_pipeline(
     ``rag/generation.py``) is what decides whether to ground the answer in
     the retrieved context or answer from clearly-labeled general knowledge.
     """
-    docs, top1_score = retrieve_context(query, session_id)
+    docs, top1_score = retrieve_context(query, session_id, history)
     context = assemble_context(docs)
     answer = generate(query, context, history=history)
     return PipelineResult(
@@ -247,7 +264,7 @@ def run_pipeline_stream(
     ``done`` event reflects what the finished answer actually cited (which
     may be the general-knowledge disclaimer line, carrying no paper title).
     """
-    docs, top1_score = retrieve_context(query, session_id)
+    docs, top1_score = retrieve_context(query, session_id, history)
 
     context = assemble_context(docs)
     accumulated = []
