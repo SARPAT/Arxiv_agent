@@ -39,8 +39,9 @@ from rag.embedder import get_embedder
 from rag.vectorstore import PUBLIC_TENANT_ID, search
 
 # The default scope: the shared arXiv corpus alone. A session that has
-# uploaded a document searches ``["public", session_id]`` instead - see
-# ``app.session.tenant_ids_for()``, which is what decides.
+# uploaded a document searches ``["public", session_id]`` instead, or
+# ``[session_id]`` alone for a question only about that document - see
+# ``rag.pipeline.retrieve_context()``, which is what decides.
 PUBLIC_TENANT_IDS = [PUBLIC_TENANT_ID]
 
 
