@@ -18,15 +18,11 @@ import spaces
 # later without a code change.
 BACKEND_URL = os.environ.get("BACKEND_URL", "http://localhost:8000")
 
-# Generous, because it has to cover a cold start. Render's free tier spins
-# the backend down after inactivity, so the first upload after an idle
-# period pays a full wake-up before any parsing begins.
+# Deliberately longer than the backend's own UPLOAD_TIMEOUT_SECONDS
+# (render.yaml), so a slow upload surfaces as the backend's 504 with a
+# readable reason rather than this client giving up first with a bare
+# "read operation timed out".
 UPLOAD_TIMEOUT_SECONDS = 180
-
-WAKE_UP_NOTICE = (
-    "the first request after a period of inactivity can take 30-60 seconds "
-    "while the backend wakes up"
-)
 
 
 @spaces.GPU
@@ -124,7 +120,7 @@ def upload_fn(file_path: str | None, session_id: str):
     happened.
 
     A generator so the processing state is visible while the request is in
-    flight - a silent spinner across a cold start reads as broken. Wrapped
+    flight - a silent spinner across a long embed reads as broken. Wrapped
     end to end in try/except: a network failure here must render as a
     message, not a stack trace in the Space's logs and nothing in the UI.
     """
@@ -133,7 +129,7 @@ def upload_fn(file_path: str | None, session_id: str):
         return
 
     filename = os.path.basename(file_path)
-    yield f"Processing **{filename}**... ({WAKE_UP_NOTICE})."
+    yield f"Processing **{filename}**... (a long paper can take up to a minute)."
 
     try:
         with open(file_path, "rb") as handle:
@@ -177,7 +173,7 @@ def corpus_info_fn():
     except (httpx.HTTPError, json.JSONDecodeError, KeyError):
         welcome = (
             "**Welcome to Arxiv Agent.** Ask a question below.\n\n"
-            f"_Couldn't load the corpus list just now - {WAKE_UP_NOTICE}. "
+            "_Couldn't load the corpus list just now. "
             "Feel free to ask anyway; it may just need a moment._"
         )
         return [{"role": "assistant", "content": welcome}], ""
@@ -187,8 +183,7 @@ def corpus_info_fn():
         "**Welcome to Arxiv Agent.** Ask a question about any of these papers:\n\n"
         f"{paper_list}\n\n"
         f"You can also upload your own PDF (up to {max_mb:g} MB) and ask "
-        "about it instead.\n\n"
-        f"_Heads up: {WAKE_UP_NOTICE}._"
+        "about it instead."
     )
     return [{"role": "assistant", "content": welcome}], f"Max {max_mb:g} MB"
 

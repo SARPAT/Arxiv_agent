@@ -277,6 +277,45 @@ embedder_mod._embedder = None  # reset for any later test run
 assert e1 is e2, "get_embedder() must return the same cached instance"
 print("PASSED: get_embedder() caches and reuses a single instance across calls.")
 
+# --- TEST 6b: ORT thread count comes from settings, never ORT's default ---
+# ORT's default sizes its pool from the host's core count, which a cgroup
+# CPU quota doesn't change - the oversubscription that made a production
+# upload's embed take 311s. Assert the session is built with explicit
+# options carrying settings.ort_intra_op_threads, not left to that default.
+import onnxruntime as real_ort  # noqa: E402
+from pydantic import ValidationError  # noqa: E402
+
+from app.config import Settings  # noqa: E402
+
+original_threads = settings.ort_intra_op_threads
+try:
+    for threads in (1, 3):
+        settings.ort_intra_op_threads = threads
+        fake_session, fake_tokenizer, patches = _patch_embedder_deps(
+            {"input_ids", "attention_mask", "token_type_ids"}
+        )
+        with patch("rag.embedder.ort.SessionOptions", real_ort.SessionOptions):
+            embedder_mod.OnnxBgeEmbeddings()
+            options = embedder_mod.ort.InferenceSession.call_args.kwargs["sess_options"]
+        for p in patches:
+            p.stop()
+        assert isinstance(options, real_ort.SessionOptions), type(options)
+        assert options.intra_op_num_threads == threads, options.intra_op_num_threads
+        assert options.inter_op_num_threads == 1, options.inter_op_num_threads
+finally:
+    settings.ort_intra_op_threads = original_threads
+
+assert Settings.model_fields["ort_intra_op_threads"].default == 1
+for bad in (0, -1):
+    try:
+        Settings(ort_intra_op_threads=bad)
+    except ValidationError:
+        pass
+    else:
+        raise AssertionError(f"ort_intra_op_threads={bad} must be rejected")
+print("PASSED: the ONNX session gets explicit SessionOptions with intra_op threads from "
+      "settings (default 1, 0/negative rejected - 0 would mean ORT's own default).")
+
 # --- TEST 7: implements langchain_core.embeddings.Embeddings ---
 from langchain_core.embeddings import Embeddings
 

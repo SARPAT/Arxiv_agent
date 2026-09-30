@@ -121,8 +121,27 @@ for it — a sandbox's baseline is not Render's. Measured on Render: **282.9 MB*
 per stage — `extract`, `delete`, `chunk`, `embed`, `upsert` — emitted on
 the failure path as well as the success one. On a failure the stages that
 never completed are simply absent, which is what names the one it stopped
-inside. `UPLOAD_TIMEOUT_SECONDS` (default 60) bounds the whole thing and
-is env-tunable for the same reason `EMBED_BATCH_SIZE` is.
+inside. `UPLOAD_TIMEOUT_SECONDS` (default 120) bounds the whole thing and
+is env-tunable for the same reason `EMBED_BATCH_SIZE` is. The frontend's
+own client timeout (180s) sits deliberately above it, so a slow upload
+reaches the user as the backend's 504 and not a bare transport timeout.
+
+**The embedder runs on one ORT thread, on purpose.** That timing line is
+what found it: a production upload spent 311s of 323s in `embed`.
+ONNX Runtime sizes its thread pool from the host's core count, and Render
+enforces a plan's CPU as a cgroup quota, which doesn't hide any cores. So
+every forward pass fanned out across one thread per host core, all
+contending for a fraction of one. The same 89 chunks, pinned to one core:
+
+| ORT intra-op threads | 1 | 2 | 4 | 8 | 16 |
+|---|---|---|---|---|---|
+| embed time | 5.7s | 8.0s | 17.9s | 38.6s | 88.4s |
+
+(A bge-small-shaped 12-layer quantized encoder, not the real weights,
+because the sandbox can't reach the Hub. The ratio between columns is
+the finding, not the absolute seconds.) `ORT_INTRA_OP_THREADS` defaults
+to 1. It's right for any plan with at most one CPU, and it's only worth
+raising on a multi-CPU plan.
 
 ---
 
