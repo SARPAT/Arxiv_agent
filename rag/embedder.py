@@ -112,8 +112,17 @@ class OnnxBgeEmbeddings(Embeddings):
         onnx_path = hf_hub_download(repo_id=_HF_REPO, filename=_ONNX_SUBPATH)
         tokenizer_path = hf_hub_download(repo_id=_HF_REPO, filename=_TOKENIZER_SUBPATH)
 
+        # ORT sizes its thread pool from the host's core count, which a
+        # cgroup CPU quota (how Render limits an instance) doesn't change.
+        # On a fractional-CPU instance that means many threads spinning
+        # and preempting each other over a slice of one core: measured on
+        # one pinned core, 89 chunks took 9.1s at 1 thread and 50.2s at 8.
+        # Pinned explicitly (ORT_INTRA_OP_THREADS, default 1) instead.
+        options = ort.SessionOptions()
+        options.intra_op_num_threads = settings.ort_intra_op_threads
+        options.inter_op_num_threads = 1
         self._session = ort.InferenceSession(
-            onnx_path, providers=["CPUExecutionProvider"]
+            onnx_path, sess_options=options, providers=["CPUExecutionProvider"]
         )
         self._tokenizer = Tokenizer.from_file(tokenizer_path)
         self._tokenizer.enable_padding()

@@ -2,7 +2,10 @@ services:
   - type: web
     name: arxiv-agent-api
     runtime: python
-    plan: free
+    # Starter, not free: an upload's embed is pure CPU, and free's
+    # fractional CPU made an 89-chunk paper take 311s to embed. Starter
+    # also doesn't spin down, so there's no cold start in front of it.
+    plan: starter
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn app.api:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
@@ -33,5 +36,11 @@ services:
       # Same rationale as EMBED_BATCH_SIZE: not a secret, ships with its
       # default, editable in the dashboard so a slow-PDF timeout can be
       # raised (or lowered) on a running instance without a redeploy.
+      # Must stay below ui/app.py's own client timeout (180s).
       - key: UPLOAD_TIMEOUT_SECONDS
-        value: 60
+        value: 120
+      # ONNX Runtime threads for the embedder. Leave at 1 on any plan with
+      # one CPU or less - ORT's default of one thread per *host* core
+      # oversubscribes a cgroup-limited slice (see rag/embedder.py).
+      - key: ORT_INTRA_OP_THREADS
+        value: 1

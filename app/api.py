@@ -185,7 +185,7 @@ async def upload(
 
     Runs the synchronous pipeline on a worker thread under an explicit
     timeout, so a pathological PDF returns a 504 rather than occupying a
-    request slot indefinitely - which matters on a free-tier instance with
+    request slot indefinitely - which matters on a small instance with
     very few of them. (The thread itself cannot be killed; the timeout
     bounds how long the *client* and the request slot wait on it.)
 

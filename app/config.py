@@ -67,10 +67,10 @@ class Settings(BaseSettings):
     # connection detail the app cannot function without, so an unset one
     # must not be able to fail a deploy. upload_timeout_seconds bounds how
     # long one PDF may occupy a worker - a pathological file should return
-    # an error, not pin a process on a free-tier instance that has few.
+    # an error, not pin a process on a small instance that has few.
     max_upload_bytes: int = 10 * 1024 * 1024
     min_extracted_chars: int = 100
-    upload_timeout_seconds: int = 60
+    upload_timeout_seconds: int = 120
 
     # How many chunks go through one ONNX forward pass.
     #
@@ -93,6 +93,15 @@ class Settings(BaseSettings):
     # returning no vectors, and silently writing an empty document to
     # Qdrant rather than failing.
     embed_batch_size: int = Field(default=8, ge=1)
+
+    # ONNX Runtime intra-op threads for the embedder. ORT's default is one
+    # per host core, and Render enforces its CPU limit as a cgroup quota,
+    # not by hiding cores - so on a fractional instance the default
+    # oversubscribes badly (see rag/embedder.py). 1 is right for anything
+    # up to one full CPU; raise it only on a multi-CPU plan. ge=1 because
+    # ORT reads 0 as "pick for me", which is exactly the default this
+    # setting exists to override.
+    ort_intra_op_threads: int = Field(default=1, ge=1)
 
     retrieval_k: int = 4
     max_context_chars: int = 2500
