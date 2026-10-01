@@ -11,3 +11,12 @@ sentence_transformers_cache/
 
 # Local agent instructions — never committed
 CLAUDE.md
+
+# Checkpoint B (eval/jev_separation.py) generated artifacts. The cache can
+# be large and is machine-local; the *.stub.* files are synthetic output
+# from --stub and must never be mistaken for, or committed as, a real
+# measurement. The real jev_separation.json/.png ARE committed when a real
+# run produces them.
+eval/jev_separation_cache.json
+eval/jev_separation.stub.json
+eval/jev_separation.stub.png

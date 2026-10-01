@@ -33,6 +33,7 @@ response) and none reaching the network:
 | `test_ui_error` | `ui/app.py`'s `chat_fn()` handling an SSE `error` event without hanging |
 | `test_query_rewrite` | Follow-up questions resolved before retrieval: the rewritten query and tenant scope reach `retrieve()`, no model call without history or an upload, every failure falls back to the raw message, and both pipeline entry points hand history to retrieval |
 | `test_corpus_info` | `GET /corpus/info` deriving papers/`max_upload_mb` dynamically (not hardcoded 7 / 10 MB), and the frontend's welcome message + upload-size label agreeing off one fetch, falling back cleanly when the backend is cold |
+| `test_jev_separation` | Checkpoint B's offline analysis: the golden set's real category labels, the three aggregators, and **the reporting contract that every threshold row carries in-corpus retention alongside out-of-corpus rejection** — plus that the study ships nothing into requirements.txt/config/render.yaml |
 
 Run right now, on this branch, all ten pass — see each module's own
 docstring for exactly what it checks. `test_checkpoint7_upload`'s leak
